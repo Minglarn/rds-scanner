@@ -1,13 +1,13 @@
 services:
   rds-scanner:
-    build: .
-    image: rds-scanner:latest
+    # build: .
+    image: ghcr.io/minglarn/rds-scanner:latest
     container_name: rds-scanner
     restart: unless-stopped
     devices:
       - /dev/bus/usb:/dev/bus/usb
     ports:
-      - "5000:5000"
+      - "9000:5000"
     volumes:
       - ./data:/app/data
     environment:

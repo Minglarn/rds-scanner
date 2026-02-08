@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
     rtl-sdr \
     librtlsdr-dev \
     libsndfile1 \
-    libliquid2d \
+    libliquid1 \
     libjansson4 \
     && rm -rf /var/lib/apt/lists/*
 
