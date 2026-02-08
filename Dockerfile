@@ -1,5 +1,5 @@
 # Multi-stage build for Redsea and Welle-cli (DAB)
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.11-bookworm AS builder
 
 # Install build dependencies for Redsea + Welle-cli
 RUN apt-get update && apt-get install -y \
@@ -32,18 +32,17 @@ RUN mkdir build && cd build && \
     make -j$(nproc) && \
     cp welle-cli /usr/local/bin/
 
-# Final image
-FROM python:3.11-slim-bookworm
+# Final image - using full bookworm (not slim) for better package availability
+FROM python:3.11-bookworm
 
 # Install runtime dependencies (FM + DAB)
-# Note: libfaad2 may require non-free repo on some systems
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     rtl-sdr \
     librtlsdr0 \
     libsndfile1 \
-    libliquid2 \
+    libliquid1 \
     libjansson4 \
-    libfftw3-single3 \
+    libfftw3-double3 \
     libmpg123-0 \
     sox \
     ffmpeg \
