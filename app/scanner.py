@@ -137,7 +137,7 @@ class Scanner:
         # Find next frequency in cache
         next_freq = None
         for f in self.peak_cache:
-            if f > self.current_frequency + 0.15: 
+            if f > self.current_frequency + 0.05: 
                 next_freq = f
                 break
         
