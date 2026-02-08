@@ -5,6 +5,7 @@ import logging
 import time
 import os
 import signal
+import csv
 from app.database import save_message
 from app.mqtt_client import publish_rds
 
@@ -25,12 +26,6 @@ class Scanner:
         if self.current_gain != 'auto':
             cmd_rtl.extend(['-g', str(self.current_gain)])
             
-        # Pipe to redsea
-        # We use shell=True for the pipe, or we can use two Popens.
-        # Shell=True is easier but risky if inputs aren't sanitized. 
-        # Since inputs are internal, it's manageable, but better used two processes.
-        # But wait, redsea reads from stdin.
-        
         return cmd_rtl
 
     def start(self):
@@ -66,25 +61,98 @@ class Scanner:
         time.sleep(0.5) # Give it a moment to release device
         self.start()
 
+    def scan_band(self):
+        """
+        Perform a wideband scan using rtl_power to find strong signals.
+        Returns a sorted list of (frequency, db) tuples.
+        """
+        logging.info("Starting wideband scan...")
+        self.stop()
+        time.sleep(1) # Ensure device is released
+        
+        # Scan 87.5M to 108M with 100k bins. 
+        # -i 1s (integration interval). -1 (single shot)
+        # Output to stdout (or temp file). stdout is -
+        
+        cmd = ['rtl_power', '-f', '87.5M:108M:100k', '-i', '0.2', '-g', '50', '-1', 'scan.csv']
+        
+        try:
+            subprocess.run(cmd, check=True, timeout=15)
+            
+            peaks = []
+            with open('scan.csv', 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    # rtl_power csv format:
+                    # date, time, Hz low, Hz high, Hz step, samples, dB, dB, dB...
+                    # We need to map dB values to frequencies.
+                    if len(row) < 7: continue
+                    
+                    start_freq = float(row[2])
+                    step = float(row[4])
+                    db_values = [float(x) for x in row[6:]]
+                    
+                    for i, db in enumerate(db_values):
+                        freq = start_freq + (i * step)
+                        freq_mhz = round(freq / 1000000, 1)
+                        if freq_mhz >= 87.5 and freq_mhz <= 108.0:
+                             peaks.append((freq_mhz, db))
+            
+            # Simple peak detection:
+            # 1. Filter out noise (e.g. < -10 dB? dynamic?)
+            # Let's take the top 20 strongest signals
+            peaks.sort(key=lambda x: x[1], reverse=True)
+            strongest = peaks[:30]
+            strongest.sort(key=lambda x: x[0]) # Sort by frequency
+            
+            logging.info(f"Scan complete. Found {len(strongest)} peaks.")
+            return strongest
+
+        except Exception as e:
+            logging.error(f"Error during band scan: {e}")
+            return []
+        finally:
+            if os.path.exists('scan.csv'):
+                os.remove('scan.csv')
+
     def scan_next(self):
         """
-        Simple seek: Increment frequency until we find a signal (or just loop).
-        For now, just hops 0.1 MHz. Ideally we check signal level.
-        Real 'seek' requires signal strength check or RDS lock check.
+        Finds the next strong signal after the current frequency.
+        If no peaks are cached or valid, falls back to incrementing.
         """
-        # Logic: Stop, increment, Start.
-        new_freq = round(self.current_frequency + 0.1, 1)
-        if new_freq > 108.0:
-            new_freq = 87.5
-        self.tune(new_freq)
-        return new_freq
+        # For now, we do a fresh scan every time? Or cache?
+        # A fresh scan takes ~2-5s.
+        # User wants "Scan Next".
+        
+        peaks = self.scan_band()
+        
+        if not peaks:
+            logging.warning("No peaks found, falling back to simple step.")
+            new_freq = round(self.current_frequency + 0.1, 1)
+            if new_freq > 108.0: new_freq = 87.5
+            self.tune(new_freq)
+            return new_freq
+
+        # Find next freq in peaks > current_frequency
+        next_freq = None
+        for f, db in peaks:
+            if f > self.current_frequency + 0.05: # Small buffer
+                next_freq = f
+                break
+        
+        if next_freq is None:
+            # Wrap around to first peak
+            if peaks:
+                next_freq = peaks[0][0]
+            else:
+                next_freq = 87.5
+        
+        logging.info(f"Auto-scan found next peak: {next_freq} MHz")
+        self.tune(next_freq)
+        return next_freq
 
     def _run_loop(self):
         rtl_cmd = self._build_command()
-        
-        # We need to pipe rtl_fm -> redsea
-        # Use simple shell string for simplicity in this context given the complex pipe
-        # rtl_fm ... | redsea -u -j
         
         gain_flag = f"-g {self.current_gain}" if self.current_gain != 'auto' else ""
         full_cmd = f"rtl_fm -f {self.current_frequency}M -M fm -s 171k -A fast -r 171k -l 0 -E deemp {gain_flag} | redsea -u"
@@ -93,7 +161,8 @@ class Scanner:
         
         try:
             # shell=True required for pipe
-            self.process = subprocess.Popen(full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True) # universal_newlines=True for text mode
+            # setsid to create a new session group, easier to kill
+            self.process = subprocess.Popen(full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid) 
             
             # Read stdout line by line
             while not self.stop_event.is_set():
@@ -123,12 +192,7 @@ class Scanner:
         finally:
             if self.process:
                 try:
-                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM) # Kill process group if shell=True sets it? 
-                    # Actually standard terminate might not kill the pipe children.
-                    # With shell=True, self.process.pid is the shell.
-                    # We might need to be more aggressive to kill rtl_fm.
-                    # But inside docker, standard cleanup usually works.
-                    self.process.terminate()
+                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM) 
                 except:
                     pass
             self.running = False
