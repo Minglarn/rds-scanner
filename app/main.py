@@ -88,8 +88,9 @@ def scan_next():
 
 @app.route('/api/messages', methods=['GET'])
 def messages():
-    limit = int(request.args.get('limit', 15))
-    msgs = get_grouped_stations(limit)
+    limit = int(request.args.get('limit', 50))
+    sort_by = request.args.get('sort', 'frequency')
+    msgs = get_grouped_stations(limit, sort_by)
     return jsonify(msgs)
 
 @app.route('/settings')
@@ -115,8 +116,9 @@ def save_settings_route():
 @app.route('/partials/messages')
 def messages_partial():
     # Return HTML fragment for HTMX
-    limit = int(request.args.get('limit', 15))
-    stations = get_grouped_stations(limit)
+    limit = int(request.args.get('limit', 50))
+    sort_by = request.args.get('sort', 'frequency')
+    stations = get_grouped_stations(limit, sort_by)
     return render_template('messages_list.html', stations=stations)
 
 @app.route('/api/messages/clear', methods=['POST'])

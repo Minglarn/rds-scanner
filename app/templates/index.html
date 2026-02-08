@@ -370,10 +370,20 @@
         <div class="feed-header"
             style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
             <div class="feed-title" style="margin-bottom: 0;">Captured Radio Presets / Signal Log</div>
-            <button type="button" class="btn-radio" onclick="clearAll()"
-                style="font-size: 0.65em; padding: 6px 12px;">CLEAR ALL</button>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <label style="font-size: 0.65em; color: #666; font-weight: bold;">SORT:</label>
+                <select id="sort-select" onchange="updateSort()"
+                    style="font-size: 0.65em; padding: 4px 8px; background: #1a1a2e; color: #0ff; border: 1px solid #0ff; border-radius: 4px;">
+                    <option value="frequency">Frequency</option>
+                    <option value="ps">Station Name</option>
+                    <option value="pty">Program Type</option>
+                    <option value="last_seen">Last Updated</option>
+                </select>
+                <button type="button" class="btn-radio" onclick="clearAll()"
+                    style="font-size: 0.65em; padding: 6px 12px;">CLEAR ALL</button>
+            </div>
         </div>
-        <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
+        <div id="messages-log" hx-get="/partials/messages?sort=frequency" hx-trigger="load, every 2s">
             <div
                 style="padding: 100px; text-align: center; color: #111; font-family: 'JetBrains Mono'; font-weight: 900; letter-spacing: 5px;">
                 SYNCHRONIZING SECURE FEED...
@@ -486,6 +496,14 @@
         function toggleScan() {
             fetch('/api/scan/next', { method: 'POST' })
                 .then(() => updateStatus());
+        }
+
+        function updateSort() {
+            const sortValue = document.getElementById('sort-select').value;
+            const messagesLog = document.getElementById('messages-log');
+            messagesLog.setAttribute('hx-get', '/partials/messages?sort=' + sortValue);
+            htmx.process(messagesLog);
+            htmx.trigger(messagesLog, 'htmx:load');
         }
 
         function clearAll() {

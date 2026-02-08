@@ -117,15 +117,24 @@ def get_recent_messages(limit=50):
     conn.close()
     return [dict(row) for row in rows]
 
-def get_grouped_stations(limit=15):
-    """
-    Get unique stations (Freq + PI) with aggregated metadata and hit counts.
+def get_grouped_stations(limit=50, sort_by='frequency'):
+    """Get stations grouped by frequency/PI with latest data for each field.
+    
+    sort_by options: 'frequency', 'ps', 'pty', 'last_seen'
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    # We want the latest PS, RT, PTY for each Frequency + PI
-    # And we want to sum the flags and count total hits
-    cursor.execute('''
+    
+    # Map sort_by to actual column
+    sort_map = {
+        'frequency': 'frequency ASC',
+        'ps': 'ps ASC',
+        'pty': 'pty ASC',
+        'last_seen': 'last_seen DESC'
+    }
+    order_clause = sort_map.get(sort_by, 'frequency ASC')
+    
+    query = f'''
         SELECT 
             frequency, 
             pi, 
@@ -139,9 +148,10 @@ def get_grouped_stations(limit=15):
             COUNT(*) as hit_count
         FROM messages m1
         GROUP BY frequency, pi
-        ORDER BY last_seen DESC
+        ORDER BY {order_clause}
         LIMIT ?
-    ''', (limit,))
+    '''
+    cursor.execute(query, (limit,))
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
