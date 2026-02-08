@@ -4,277 +4,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDS TACTICAL MONITOR</title>
+    <title>RDS DIGITAL CAR RADIO</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Inter:wght@400;700;900&display=swap"
         rel="stylesheet">
     <style>
         :root {
-            --bg-base: #020408;
-            --bg-panel: #0a0c10;
-            --accent-blue: #00d2ff;
-            --accent-green: #10b981;
-            --accent-amber: #f59e0b;
-            --border: #1a1e26;
-            --text: #cbd5e1;
-            --text-muted: #4b5563;
+            --panel-bg: #12141a;
+            --lcd-bg: #000;
+            --lcd-neon: #00d2ff;
+            --lcd-amber: #ea580c;
+            --lcd-green: #10b981;
+            --border: #2d3139;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg-base);
-            color: var(--text);
+            background: #08090b;
+            color: #d1d5db;
             margin: 0;
             display: flex;
             flex-direction: column;
+            align-items: center;
             min-height: 100vh;
+            padding-top: 20px;
         }
 
-        header {
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border);
-            padding: 8px 15px;
+        /* Master Radio Unit */
+        .radio-unit {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .unit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            font-family: 'JetBrains Mono';
+            font-weight: 900;
+            font-size: 0.8em;
+            letter-spacing: 3px;
+            color: #444;
+        }
+
+        /* Main LCD Display */
+        .master-lcd {
+            background: var(--lcd-bg);
+            border-radius: 8px;
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            border: 1px solid #111;
+            box-shadow: inset 0 0 30px rgba(0, 210, 255, 0.05);
+            position: relative;
+        }
+
+        .freq-readout {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--lcd-neon);
+            font-size: 5em;
+            line-height: 1;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+        }
+
+        .freq-unit {
+            font-size: 0.3em;
+            margin-left: 10px;
+            color: #1e3a4e;
+        }
+
+        .status-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .led-pill {
+            font-family: 'JetBrains Mono';
+            font-size: 0.7em;
+            font-weight: 900;
+            padding: 4px 12px;
+            border-radius: 4px;
+            background: #0a0a0a;
+            color: #222;
+            border: 1px solid #111;
+            letter-spacing: 2px;
+        }
+
+        .led-pill.active-scan {
+            color: var(--lcd-neon);
+            box-shadow: 0 0 10px var(--lcd-neon);
+            border-color: var(--lcd-neon);
+            background: #001a22;
+            animation: blink 1.5s infinite;
+        }
+
+        .led-pill.active-lock {
+            color: var(--lcd-green);
+            box-shadow: 0 0 10px var(--lcd-green);
+            border-color: var(--lcd-green);
+            background: #002200;
+        }
+
+        .led-pill.active-pwr {
+            color: var(--lcd-amber);
+            box-shadow: 0 0 10px var(--lcd-amber);
+            border-color: var(--lcd-amber);
+            background: #221100;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Controls Row */
+        .controls-row {
             display: flex;
             align-items: center;
             gap: 20px;
-            flex-shrink: 0;
-            z-index: 100;
-        }
-
-        .brand {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 900;
-            font-size: 0.9em;
-            letter-spacing: 2px;
-            color: #fff;
-            white-space: nowrap;
-        }
-
-        .status-pill {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75em;
-            background: #000;
-            padding: 4px 10px;
-            border-radius: 4px;
+            background: #1a1d24;
+            padding: 15px;
+            border-radius: 8px;
             border: 1px solid var(--border);
         }
 
-        .indicator-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #222;
-        }
-
-        .active-dot.green {
-            background: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
-        }
-
-        .active-dot.blue {
-            background: var(--accent-blue);
-            box-shadow: 0 0 8px var(--accent-blue);
-        }
-
-        .controls {
+        .knob-section {
             display: flex;
             align-items: center;
-            gap: 15px;
-            flex-grow: 1;
-            justify-content: flex-end;
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            gap: 10px;
         }
 
         label {
-            font-size: 0.65em;
+            font-size: 0.6em;
             font-weight: 900;
-            color: var(--text-muted);
+            color: #4b5563;
             text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         input[type="number"] {
             background: #000;
-            border: 1px solid var(--border);
-            color: var(--accent-blue);
-            padding: 4px 8px;
-            border-radius: 3px;
-            width: 70px;
+            border: 1px solid #333;
+            color: var(--lcd-neon);
             font-family: 'JetBrains Mono';
-            font-size: 1em;
+            font-size: 1.4em;
+            padding: 5px 10px;
+            border-radius: 4px;
+            width: 100px;
         }
 
-        .btn {
-            background: #1e293b;
-            color: #fff;
+        .btn-radio {
+            background: #2a2d3e;
+            color: #d1d5db;
             border: 1px solid var(--border);
-            padding: 4px 12px;
-            border-radius: 3px;
-            font-size: 0.75em;
-            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.8em;
             cursor: pointer;
+            box-shadow: 0 4px 0 #000;
+            text-transform: uppercase;
             transition: all 0.1s;
         }
 
-        .btn:hover {
-            background: #334155;
+        .btn-radio:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #000;
         }
 
-        .btn-blue {
+        .btn-radio:hover {
+            background: #34384e;
+        }
+
+        .btn-radio.blue {
             background: #0369a1;
             border-color: #0c4a6e;
         }
 
-        .btn-green {
+        .btn-radio.green {
             background: #065f46;
             border-color: #064e3b;
         }
 
-        .gain-slider-box {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
         .slider {
-            width: 100px;
-            accent-color: var(--accent-blue);
-        }
-
-        main {
             flex-grow: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            background: #000;
+            min-width: 100px;
+            accent-color: var(--lcd-neon);
         }
 
-        .feed-header {
-            background: #0a0c10;
-            padding: 4px 15px;
-            font-size: 0.65em;
-            font-weight: bold;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
-            display: grid;
-            grid-template-columns: 130px 180px 1fr 60px 60px;
-            gap: 15px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        #messages-log {
-            flex-grow: 1;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #1a1e26 transparent;
-        }
-
-        #messages-log::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #messages-log::-webkit-scrollbar-thumb {
-            background: #1a1e26;
-            border-radius: 3px;
-        }
-
-        .config-link {
-            color: var(--text-muted);
+        .config-btn {
+            color: #4b5563;
             text-decoration: none;
             font-size: 0.7em;
             font-weight: bold;
-            padding-left: 15px;
-            border-left: 1px solid var(--border);
+            text-transform: uppercase;
+            margin-left: auto;
         }
 
-        .config-link:hover {
+        .config-btn:hover {
             color: #fff;
         }
 
-        @media (max-width: 800px) {
-            header {
-                flex-wrap: wrap;
-                height: auto;
-                padding: 10px;
-            }
+        /* Results Area */
+        .station-feed {
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 30px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
 
-            .controls {
-                width: 100%;
-                justify-content: flex-start;
-                margin-top: 10px;
-            }
-
-            .feed-header {
-                display: none;
-            }
+        .feed-title {
+            font-size: 0.7em;
+            font-weight: 900;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-align: center;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 
 <body>
-    <header>
-        <div class="brand">RDS // MONITOR</div>
-
-        <div class="status-pill">
-            <div class="indicator-dot" id="dot-power"></div>
-            <span id="txt-freq">00.0 MHz</span>
+    <div class="radio-unit">
+        <div class="unit-header">
+            <div class="brand-logo">RDS // TACTICAL-SERIES</div>
+            <a href="/settings" class="config-btn">SYSTEM SETTINGS</a>
         </div>
 
-        <div class="status-pill" id="search-pill" style="display:none;">
-            <div class="indicator-dot blue active-dot"></div>
-            <span style="color: var(--accent-blue);">SCANNING</span>
+        <!-- Master Display -->
+        <div class="master-lcd">
+            <div class="freq-readout" id="lcd-freq">00.0<span class="freq-unit">MHz</span></div>
+            <div class="status-indicators">
+                <div class="led-pill" id="led-pwr">POWER</div>
+                <div class="led-pill" id="led-scan">SCANNING</div>
+                <div class="led-pill" id="led-lock">LOCKED</div>
+            </div>
         </div>
 
-        <div class="controls">
-            <div class="input-group">
-                <label>FREQ</label>
+        <!-- Controls Row -->
+        <div class="controls-row">
+            <div class="knob-section">
+                <label>Manual Tune</label>
                 <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="00.0">
-                <button class="btn btn-blue" onclick="tune()">SET</button>
+                <button class="btn-radio blue" onclick="tune()">SET</button>
             </div>
 
-            <div class="input-group">
-                <button class="btn btn-green" onclick="scanNext()">SEARCH BAND</button>
-            </div>
+            <button class="btn-radio green" onclick="scanNext()">SEARCH BAND</button>
 
-            <div class="gain-slider-box">
-                <label>GAIN</label>
+            <div class="knob-section" style="flex-grow:1;">
+                <label>Gain</label>
                 <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" class="slider"
                     oninput="document.getElementById('gain-val').innerText = this.value">
-                <span id="gain-val" style="font-family: monospace; font-size: 0.8em; min-width: 15px;">0</span>
-                <label style="display:flex; align-items:center; gap:3px; cursor:pointer;">
+                <span id="gain-val" style="font-family: monospace; font-size: 0.9em; min-width: 20px;">0</span>
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
                     <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
                 </label>
-                <button class="btn" onclick="setGain()">APPLY</button>
+                <button class="btn-radio" onclick="setGain()">APPLY</button>
             </div>
-
-            <a href="/settings" class="config-link">SETTINGS</a>
         </div>
-    </header>
+    </div>
 
-    <main>
-        <div class="feed-header">
-            <div>Frequency / PI / Pkts</div>
-            <div>Station ID / PTY</div>
-            <div>Radiotext Feed</div>
-            <div>Flags</div>
-            <div>Timestamp</div>
-        </div>
+    <div class="station-feed">
+        <div class="feed-title">Captured Radio Presets / Signal Log</div>
         <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
             <div
                 style="padding: 100px; text-align: center; color: #111; font-family: 'JetBrains Mono'; font-weight: 900; letter-spacing: 5px;">
                 SYNCHRONIZING SECURE FEED...
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
         function toggleGainAuto(isAuto) {
@@ -287,18 +312,28 @@
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById('txt-freq').innerText = `${data.frequency.toFixed(1)} MHz`;
+                    document.getElementById('lcd-freq').innerHTML = `${data.frequency.toFixed(1)}<span class="freq-unit">MHz</span>`;
 
-                    const dotPower = document.getElementById('dot-power');
-                    dotPower.className = data.running ? 'indicator-dot active-dot green' : 'indicator-dot';
+                    const ledPwr = document.getElementById('led-pwr');
+                    const ledScan = document.getElementById('led-scan');
+                    const ledLock = document.getElementById('led-lock');
 
-                    const searchPill = document.getElementById('search-pill');
+                    ledPwr.className = data.running ? 'led-pill active-pwr' : 'led-pill';
+
                     if (data.searching) {
-                        searchPill.style.display = 'flex';
+                        ledScan.className = 'led-pill active-scan';
+                        ledLock.className = 'led-pill';
+                    } else {
+                        ledScan.className = 'led-pill';
+                        // If we have messages, we might be locked. 
+                        // For now we check if running and not searching as a proxy for "Locked on station"
+                        ledLock.className = data.running ? 'led-pill active-lock' : 'led-pill';
+                    }
+
+                    if (data.searching) {
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 1000);
                     } else {
-                        searchPill.style.display = 'none';
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 3000);
                     }

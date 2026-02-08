@@ -1,33 +1,37 @@
-<div class="station-grid">
+<div class="radio-grid">
     {% for station in stations %}
-    <div class="station-card">
-        <div class="card-top">
-            <div class="freq-tag">{{ "%.1f"|format(station.frequency) }} MHz</div>
-            <div class="pi-tag" title="PI Code">{{ station.pi if station.pi else '----' }}</div>
+    <div class="radio-card">
+        <!-- Display Bezel -->
+        <div class="display-bezel">
+            <div class="display-header">
+                <span class="freq-main">{{ "%.1f"|format(station.frequency) }}<small>MHz</small></span>
+                <span class="pi-code">PI:{{ station.pi if station.pi else '----' }}</span>
+            </div>
+
+            <div class="ps-display {{ 'no-signal' if not station.ps }}">
+                {{ station.ps if station.ps else "TUNING..." }}
+            </div>
+
+            <div class="pty-label">{{ station.pty | pty_name }}</div>
         </div>
 
-        <div class="card-main">
-            <div class="station-name {{ 'empty' if not station.ps }}">
-                {{ station.ps if station.ps else "DETECTOR ACTIVE" }}
-            </div>
-            <div class="pty-tag">{{ station.pty | pty_name }}</div>
-        </div>
-
-        <div class="rt-container">
-            <div class="rt-scroll-box">
-                {{ station.rt if station.rt else '... monitoring ...' }}
+        <!-- Scrolling Ticker Area -->
+        <div class="ticker-area">
+            <div class="ticker-text">
+                {{ station.rt if station.rt else 'Awaiting RDS data stream...' }}
             </div>
         </div>
 
-        <div class="card-footer">
-            <div class="flags">
-                <span class="flag {{ 'active tmc' if station.tmc }}" title="TMC">M</span>
-                <span class="flag {{ 'active ta' if station.ta }}" title="TA">A</span>
-                <span class="flag {{ 'active tp' if station.tp }}" title="TP">P</span>
+        <!-- Indicator Bar -->
+        <div class="indicator-bar">
+            <div class="dash-indicators">
+                <div class="dash-led {{ 'on-tmc' if station.tmc }}">TMC</div>
+                <div class="dash-led {{ 'on-ta' if station.ta }}">TA</div>
+                <div class="dash-led {{ 'on-tp' if station.tp }}">TP</div>
             </div>
-            <div class="stats">
-                <span class="pkts">PKTS: {{ station.hit_count }}</span>
-                <span class="time">{{ station.last_seen.split(' ')[1].split('.')[0] if station.last_seen else ''
+            <div class="card-stats">
+                <span class="stat-item"><i class="icon"></i>{{ station.hit_count }} PKTS</span>
+                <span class="stat-item">{{ station.last_seen.split(' ')[1].split('.')[0] if station.last_seen else ''
                     }}</span>
             </div>
         </div>
@@ -36,207 +40,223 @@
 </div>
 
 {% if not stations %}
-<div class="no-data-notice">
-    <div class="pulse">SQUELCH ON</div>
-    <p>correlation required</p>
+<div class="searching-overlay">
+    <div class="scanner-anim"></div>
+    <div class="status-msg">INITIALIZING SYSTEM CORRELATION</div>
+    <div class="sub-msg">Scanning FM band 87.5 - 108.0 MHz</div>
 </div>
 {% endif %}
 
 <style>
-    .station-grid {
+    .radio-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 15px;
-        padding: 15px;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+        padding: 20px;
     }
 
-    .station-card {
-        background: #11141d;
-        border: 1px solid #232738;
-        border-radius: 8px;
-        overflow: hidden;
+    .radio-card {
+        background: #1a1c22;
+        border: 2px solid #2d3139;
+        border-top-color: #3e4450;
+        border-radius: 6px;
+        padding: 4px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         display: flex;
         flex-direction: column;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        transition: transform 0.1s, border-color 0.2s;
+        transition: transform 0.1s;
     }
 
-    .station-card:hover {
-        transform: translateY(-2px);
-        border-color: #00d2ff88;
+    .radio-card:hover {
+        transform: scale(1.02);
+        border-color: #00d2ff;
     }
 
-    .card-top {
+    .display-bezel {
+        background: #000;
+        border-radius: 4px;
+        padding: 12px;
+        border: 1px solid #111;
+        box-shadow: inset 0 0 15px rgba(0, 210, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .display-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        background: #1a1d2e;
-        padding: 8px 12px;
-        border-bottom: 1px solid #2e344e;
+        align-items: flex-start;
     }
 
-    .freq-tag {
-        color: #00d2ff;
+    .freq-main {
         font-family: 'JetBrains Mono', monospace;
+        color: #00d2ff;
+        font-size: 1.8em;
         font-weight: 800;
-        font-size: 1.1em;
+        line-height: 1;
+        text-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
     }
 
-    .pi-tag {
-        font-size: 0.7em;
-        color: #4b5563;
+    .freq-main small {
+        font-size: 0.4em;
+        margin-left: 4px;
+        color: #1e3a4e;
+    }
+
+    .pi-code {
         font-family: monospace;
+        font-size: 0.65em;
+        color: #334155;
+        font-weight: bold;
     }
 
-    .card-main {
-        padding: 15px;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .station-name {
+    .ps-display {
         font-size: 1.4em;
         font-weight: 900;
         color: #fff;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        line-height: 1.2;
+        letter-spacing: 2px;
+        height: 1.4em;
+        overflow: hidden;
     }
 
-    .station-name.empty {
-        color: #232738;
-        font-size: 0.9em;
-        font-style: italic;
+    .ps-display.no-signal {
+        color: #1e293b;
+        font-size: 1em;
+        letter-spacing: 5px;
     }
 
-    .pty-tag {
-        font-size: 0.65em;
-        color: #94a3b8;
-        background: #000;
-        padding: 2px 8px;
-        border-radius: 4px;
-        align-self: flex-start;
+    .pty-label {
+        font-size: 0.6em;
+        color: #64748b;
         font-weight: bold;
         text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
-    .rt-container {
-        background: #000;
-        margin: 0 15px 15px;
-        padding: 8px 12px;
-        border-radius: 4px;
-        border: 1px solid #002200;
-        height: 60px;
-        overflow-y: auto;
+    .ticker-area {
+        background: #080a0f;
+        margin-top: 4px;
+        padding: 8px 10px;
+        border-radius: 2px;
+        border-top: 1px solid #1a1e26;
+        height: 45px;
+        overflow: hidden;
     }
 
-    .rt-scroll-box {
-        color: #00ff41;
+    .ticker-text {
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.8em;
+        font-size: 0.75em;
+        color: #10b981;
         line-height: 1.4;
-        text-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+        opacity: 0.8;
     }
 
-    .card-footer {
-        background: #0a0c10;
-        padding: 8px 12px;
+    .indicator-bar {
+        margin-top: 4px;
+        padding: 6px 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-top: 1px solid #1a1e26;
+        background: #11141a;
+        border-radius: 0 0 4px 4px;
     }
 
-    .flags {
+    .dash-indicators {
         display: flex;
-        gap: 4px;
+        gap: 6px;
     }
 
-    .flag {
-        width: 18px;
-        height: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        font-weight: 800;
-        background: #111;
+    .dash-led {
+        font-size: 0.6em;
+        font-weight: 900;
         color: #222;
+        padding: 1px 6px;
+        border: 1px solid #222;
         border-radius: 2px;
+        transition: all 0.2s;
     }
 
-    .flag.active.tmc {
-        background: #ff0055;
+    .on-tmc {
         color: #fff;
-        box-shadow: 0 0 8px #ff005588;
+        background: #991b1b;
+        border-color: #dc2626;
+        box-shadow: 0 0 5px rgba(220, 38, 38, 0.5);
     }
 
-    .flag.active.ta {
-        background: #ffaa00;
+    .on-ta {
         color: #000;
-        box-shadow: 0 0 8px #ffaa0088;
+        background: #ea580c;
+        border-color: #f97316;
+        box-shadow: 0 0 5px rgba(249, 115, 22, 0.5);
     }
 
-    .flag.active.tp {
-        background: #00d2ff;
-        color: #000;
-        box-shadow: 0 0 8px #00d2ff88;
+    .on-tp {
+        color: #fff;
+        background: #0369a1;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 5px rgba(14, 165, 233, 0.5);
     }
 
-    .stats {
+    .card-stats {
+        display: flex;
+        gap: 12px;
+        font-size: 0.6em;
+        color: #475569;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Overlay */
+    .searching-overlay {
+        padding: 100px 20px;
+        text-align: center;
         display: flex;
         flex-direction: column;
-        align-items: flex-end;
-        gap: 2px;
+        align-items: center;
+        gap: 15px;
     }
 
-    .pkts {
-        color: #059669;
-        font-size: 0.65em;
-        font-family: monospace;
-        font-weight: bold;
+    .scanner-anim {
+        width: 100px;
+        height: 2px;
+        background: #1e293b;
+        position: relative;
+        overflow: hidden;
     }
 
-    .time {
-        color: #4b5563;
-        font-size: 0.6em;
-        font-family: monospace;
+    .scanner-anim::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -50%;
+        width: 50%;
+        height: 100%;
+        background: #00d2ff;
+        animation: scanline 2s infinite;
     }
 
-    .no-data-notice {
-        padding: 80px;
-        text-align: center;
-        color: #1a1e26;
-    }
-
-    .pulse {
-        font-family: 'JetBrains Mono';
-        font-weight: 900;
-        font-size: 2em;
-        letter-spacing: 10px;
-        animation: glow 2s infinite;
-    }
-
-    .no-data-notice p {
-        font-size: 0.8em;
-        letter-spacing: 4px;
-        text-transform: uppercase;
-        margin-top: 10px;
-    }
-
-    @keyframes glow {
+    @keyframes scanline {
         0% {
-            opacity: 0.3;
-        }
-
-        50% {
-            opacity: 0.6;
+            left: -50%;
         }
 
         100% {
-            opacity: 0.3;
+            left: 100%;
         }
+    }
+
+    .status-msg {
+        font-weight: 900;
+        letter-spacing: 4px;
+        color: #fff;
+        font-size: 1.2em;
+    }
+
+    .sub-msg {
+        font-size: 0.7em;
+        color: #475569;
+        letter-spacing: 2px;
+        text-transform: uppercase;
     }
 </style>
