@@ -185,7 +185,7 @@ class Scanner:
                 # Check search timeout (if no RDS within 4 seconds, skip to next)
                 if self.searching:
                     elapsed = time.time() - self.search_start_time
-                    if elapsed > 4.0: # 4 second timeout for RDS lock
+                    if elapsed > 2.0: # 2 second timeout for RDS lock (faster scan)
                         logging.info(f"No RDS lock on {self.current_frequency} MHz after {round(elapsed, 1)}s. Skipping...")
                         # Run scan_next in a thread so we don't block this breaking loop
                         threading.Thread(target=self.scan_next, daemon=True).start()
