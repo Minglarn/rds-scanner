@@ -83,8 +83,10 @@ def save_message(data):
         # Extract fields with defaults
         frequency = data.get('frequency', 0.0)
         pi = data.get('pi', '')
+        pi = data.get('pi', '')
         ps = data.get('ps', '')
-        rt = data.get('rt', '')
+        # Map radiotext (redsea standard) or rt to rt column
+        rt = data.get('radiotext', data.get('rt', ''))
         # Map prog_type (from redsea) to pty column
         pty = data.get('prog_type', '')
         if not pty:
@@ -143,3 +145,27 @@ def get_grouped_stations(limit=15):
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+def register_signal_peaks(frequencies):
+    """
+    Inserts placeholder records for detected frequencies so they appear in the UI immediately.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        timestamp = datetime.utcnow()
+        
+        for freq in frequencies:
+            # Check if we already have a recent entry for this freq
+            cursor.execute('SELECT id FROM messages WHERE frequency = ? LIMIT 1', (freq,))
+            if not cursor.fetchone():
+                cursor.execute('''
+                    INSERT INTO messages (timestamp, frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (timestamp, freq, '', '', '', '', 0, 0, 0, '{}'))
+                
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logging.error(f"Error registering peaks: {e}")

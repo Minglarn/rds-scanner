@@ -6,7 +6,7 @@ import time
 import os
 import signal
 import csv
-from app.database import save_message, get_settings
+from app.database import save_message, get_settings, register_signal_peaks
 from app.mqtt_client import publish_rds
 
 class Scanner:
@@ -99,6 +99,10 @@ class Scanner:
             
             unique_peaks = sorted(list(set(peaks)))
             logging.info(f"Band scan complete. Found {len(unique_peaks)} potential stations.")
+            
+            # Register peaks in DB so they show up in UI immediately
+            register_signal_peaks(unique_peaks)
+            
             return unique_peaks
         except Exception as e:
             logging.error(f"Error during band scan: {e}")
@@ -147,6 +151,9 @@ class Scanner:
         logging.info(f"Next Station: {next_freq} MHz (from {len(self.peak_cache)} peaks)")
         self.search_start_time = time.time()
         self.tune(next_freq)
+        
+        # We return the freq but finding the next one is done by calling scan_next again 
+        # via the loop timeout or manual button. 
         return next_freq
 
     def _run_loop(self):
