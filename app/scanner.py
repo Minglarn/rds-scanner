@@ -25,7 +25,10 @@ class Scanner:
         self.search_start_time = 0
 
     def _build_command(self):
-        cmd_rtl = ['rtl_fm', '-f', f'{self.current_frequency}M', '-M', 'fm', '-s', '171k', '-A', 'fast', '-r', '171k', '-l', '0', '-E', 'deemp']
+        settings = get_settings()
+        device = settings.get('device_index', '0')
+        
+        cmd_rtl = ['rtl_fm', '-d', device, '-f', f'{self.current_frequency}M', '-M', 'fm', '-s', '171k', '-A', 'fast', '-r', '171k', '-l', '0', '-E', 'deemp']
         if self.current_gain != 'auto':
             cmd_rtl.extend(['-g', str(self.current_gain)])
         return cmd_rtl
@@ -67,7 +70,14 @@ class Scanner:
         time.sleep(1) 
         settings = get_settings()
         integration = settings.get('scan_integration', '0.2')
-        cmd = ['rtl_power', '-f', '87.5M:108M:100k', '-i', integration, '-g', '50', '-1', 'scan.csv']
+        device = settings.get('device_index', '0')
+        
+        cmd = ['rtl_power', '-d', device, '-f', '87.5M:108M:100k', '-i', integration]
+        
+        if self.current_gain != 'auto':
+            cmd.extend(['-g', str(self.current_gain)])
+            
+        cmd.extend(['-1', 'scan.csv'])
         try:
             subprocess.run(cmd, check=True, timeout=15)
             peaks = []
@@ -122,8 +132,11 @@ class Scanner:
         return next_freq
 
     def _run_loop(self):
+        settings = get_settings()
+        device = settings.get('device_index', '0')
         gain_flag = f"-g {self.current_gain}" if self.current_gain != 'auto' else ""
-        full_cmd = f"rtl_fm -f {self.current_frequency}M -M fm -s 171k -A fast -r 171k -l 0 -E deemp {gain_flag} | redsea -u"
+        
+        full_cmd = f"rtl_fm -d {device} -f {self.current_frequency}M -M fm -s 171k -A fast -r 171k -l 0 -E deemp {gain_flag} | redsea -u"
         
         try:
             self.process = subprocess.Popen(full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid) 

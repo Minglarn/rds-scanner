@@ -47,7 +47,8 @@ def init_db():
             ('mqtt_port', '1883'),
             ('mqtt_user', ''),
             ('mqtt_password', ''),
-            ('mqtt_topic_prefix', 'rds')
+            ('mqtt_topic_prefix', 'rds'),
+            ('device_index', '0')
         ]
         cursor.executemany('INSERT INTO settings (key, value) VALUES (?, ?)', defaults)
         

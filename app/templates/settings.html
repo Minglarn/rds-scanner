@@ -15,7 +15,7 @@
         }
 
         .container {
-            max_width: 600px;
+            max-width: 600px;
             margin: 0 auto;
         }
 
@@ -95,6 +95,12 @@
                     Scan Step (MHz)
                     <input type="number" step="0.05" name="scan_step" value="{{ settings.scan_step }}">
                     <small style="color: #888; font-weight: normal;">Fallback step size (default 0.1)</small>
+                </label>
+                <label>
+                    RTL-SDR Device Index (or SN)
+                    <input type="text" name="device_index" value="{{ settings.device_index }}">
+                    <small style="color: #888; font-weight: normal;">Useful if you have multiple dongles (default
+                        0)</small>
                 </label>
 
                 <h2>MQTT Configuration</h2>
