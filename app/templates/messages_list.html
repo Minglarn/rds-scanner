@@ -1,0 +1,30 @@
+<table class="log-table">
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>Freq</th>
+            <th>PI</th>
+            <th>PS</th>
+            <th>RT</th>
+            <th>PTY</th>
+            <th>Flags</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for msg in messages %}
+        <tr>
+            <td>{{ msg.timestamp.split(' ')[1].split('.')[0] }}</td>
+            <td>{{ msg.frequency }}</td>
+            <td>{{ msg.pi }}</td>
+            <td><strong>{{ msg.ps }}</strong></td>
+            <td>{{ msg.rt }}</td>
+            <td>{{ msg.pty }}</td>
+            <td>
+                {% if msg.tmc %}<span class="badge badge-tmc">TMC</span>{% endif %}
+                {% if msg.ta %}<span class="badge badge-ta">TA</span>{% endif %}
+                {% if msg.tp %}<span class="badge badge-tp">TP</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

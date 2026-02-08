@@ -1,0 +1,16 @@
+services:
+  rds-scanner:
+    build: .
+    image: rds-scanner:latest
+    container_name: rds-scanner
+    restart: unless-stopped
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - MQTT_BROKER=your_mqtt_broker_ip
+      - MQTT_PORT=1883
+      - MQTT_TOPIC_PREFIX=rds

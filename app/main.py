@@ -1,0 +1,70 @@
+from flask import Flask, render_template, request, jsonify
+import logging
+import threading
+import time
+from app.scanner import scanner_instance
+from app.database import init_db, get_recent_messages, get_db_connection
+from app.mqtt_client import init_mqtt
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+app = Flask(__name__)
+
+# Initialize components
+init_db()
+init_mqtt()
+
+# Start scanner in 2 seconds to allow Flask to start
+def start_scanner_delayed():
+    time.sleep(2)
+    scanner_instance.start()
+
+threading.Thread(target=start_scanner_delayed, daemon=True).start()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    return jsonify({
+        'frequency': scanner_instance.current_frequency,
+        'gain': scanner_instance.current_gain,
+        'running': scanner_instance.running
+    })
+
+@app.route('/api/tune', methods=['POST'])
+def tune():
+    data = request.json
+    try:
+        freq = float(data.get('frequency', scanner_instance.current_frequency))
+        gain = data.get('gain', scanner_instance.current_gain)
+        scanner_instance.tune(freq, gain)
+        return jsonify({'status': 'ok', 'frequency': freq, 'gain': gain})
+    except ValueError:
+        return jsonify({'error': 'Invalid frequency or gain'}), 400
+
+@app.route('/api/scan/next', methods=['POST'])
+def scan_next():
+    try:
+        new_freq = scanner_instance.scan_next()
+        return jsonify({'status': 'ok', 'frequency': new_freq})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/messages', methods=['GET'])
+def messages():
+    limit = int(request.args.get('limit', 50))
+    msgs = get_recent_messages(limit)
+    return jsonify(msgs)
+
+@app.route('/partials/messages')
+def messages_partial():
+    # Return HTML fragment for HTMX
+    limit = int(request.args.get('limit', 20))
+    messages = get_recent_messages(limit)
+    return render_template('messages_list.html', messages=messages)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False) # Debug mode False for production use
