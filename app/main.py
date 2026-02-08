@@ -137,13 +137,27 @@ def clear_messages():
 def audio_stream():
     """Stream live FM audio for the current frequency."""
     freq = request.args.get('freq', scanner_instance.current_frequency)
+    freq = request.args.get('freq', 88.5)
     gain = request.args.get('gain', scanner_instance.current_gain)
+    
+    # Stop the background scanner to release the device
+    if scanner_instance.running:
+        scanner_instance.stop()
+        time.sleep(1) # Give it a moment to release device
+        
     return get_audio_stream(float(freq), gain)
 
 @app.route('/api/audio/stop', methods=['POST'])
 def audio_stop():
     """Stop the audio stream."""
+    """Stop the audio stream."""
     audio_streamer.stop()
+    
+    # Restart the background scanner if we are in FM mode
+    if current_mode == 'fm' and not scanner_instance.running:
+        time.sleep(1) # Wait for audio process to die
+        scanner_instance.start()
+        
     return jsonify({'status': 'stopped'})
 
 # ========== DAB ROUTES ==========
