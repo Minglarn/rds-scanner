@@ -1,43 +1,35 @@
 {% for station in stations %}
-<div class="station-card">
-    <div class="station-header">
-        <div class="freq-box">
-            <span class="freq-val">{{ "%.1f"|format(station.frequency) }}</span>
-            <span class="freq-unit">MHz</span>
+<div class="scanner-card">
+    <div class="card-edge"></div>
+    <div class="card-body">
+        <div class="card-header">
+            <span class="lcd-freq">{{ "%.1f"|format(station.frequency) }} MHz</span>
+            <span class="lcd-pi">PI:{{ station.pi if station.pi else '----' }}</span>
         </div>
-        <div class="station-meta">
-            <span class="last-seen">Last: {{ station.last_seen.split(' ')[1].split('.')[0] if station.last_seen else
-                'N/A' }}</span>
-            <span class="hit-counter" title="Total RDS packets received for this station">SCAN COUNT: {{
-                station.hit_count }}</span>
-        </div>
-    </div>
 
-    <div class="station-content">
-        <div class="pi-tag" title="Program Identification code">PI: {{ station.pi if station.pi else '0000' }}</div>
-
-        <div class="station-info">
-            <div class="ps-display {{ 'empty' if not station.ps }}">
-                {{ station.ps if station.ps else "SEARCHING NAMES..." }}
+        <div class="station-main">
+            <div class="station-name-lcd {{ 'dim' if not station.ps }}">
+                {{ station.ps if station.ps else "DETECTOR ACTIVE..." }}
             </div>
-            <div class="pty-label">{{ station.pty | pty_name }}</div>
+            <div class="pty-lcd">{{ station.pty | pty_name }}</div>
         </div>
 
         {% if station.rt %}
-        <div class="rt-display">
-            <div class="rt-scroll">{{ station.rt }}</div>
+        <div class="rt-terminal">
+            <div class="msg-prefix">&gt;</div>
+            <div class="msg-content">{{ station.rt }}</div>
         </div>
         {% endif %}
 
-        <div class="flags-grid">
-            <div class="flag-item {{ 'active' if station.tmc }}" title="Traffic Message Channel">
-                <span class="flag-indicator"></span> TMC
+        <div class="scanner-footer">
+            <div class="flag-indicators">
+                <div class="indicator {{ 'active-tmc' if station.tmc }}" title="Traffic Message Channel">TMC</div>
+                <div class="indicator {{ 'active-ta' if station.ta }}" title="Traffic Announcement">TA</div>
+                <div class="indicator {{ 'active-tp' if station.tp }}" title="Traffic Programme">TP</div>
             </div>
-            <div class="flag-item {{ 'active' if station.ta }}" title="Traffic Announcement">
-                <span class="flag-indicator"></span> TA
-            </div>
-            <div class="flag-item {{ 'active' if station.tp }}" title="Traffic Programme">
-                <span class="flag-indicator"></span> TP
+            <div class="hit-stats">
+                <span class="hits-label">PKTS:</span>
+                <span class="hits-val">{{ station.hit_count }}</span>
             </div>
         </div>
     </div>
@@ -45,164 +37,190 @@
 {% endfor %}
 
 {% if not stations %}
-<div
-    style="padding:40px; text-align:center; color:#555; background:rgba(0,0,0,0.2); border-radius:8px; border:2px dashed #333;">
-    <p style="font-size:1.2em; letter-spacing:1px;">NO SIGNAL DETECTED</p>
-    <small>Initialize scan to capture traffic</small>
+<div class="no-signal">
+    <div class="lcd-text">SQUELCH ACTIVE</div>
+    <div class="lcd-sub">AWAITING SIGNAL LOCK</div>
 </div>
 {% endif %}
 
 <style>
-    .station-card {
-        background: #12141d;
-        border: 1px solid #232738;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    }
-
-    .station-header {
-        background: #1a1d2e;
-        padding: 10px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #2e344e;
-    }
-
-    .freq-box {
-        color: #00d2ff;
-        font-family: 'JetBrains Mono', monospace;
-        font-weight: 800;
-    }
-
-    .freq-val {
-        font-size: 1.4em;
-    }
-
-    .freq-unit {
-        font-size: 0.8em;
-        margin-left: 4px;
-        opacity: 0.7;
-    }
-
-    .station-meta {
-        text-align: right;
-        font-family: 'Inter', sans-serif;
-        font-size: 0.75em;
-        color: #64748b;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .hit-counter {
-        color: #00ff41;
-        font-weight: bold;
-        margin-top: 2px;
-    }
-
-    .station-content {
-        padding: 15px;
-        position: relative;
-    }
-
-    .pi-tag {
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        font-family: monospace;
-        background: #2e344e;
-        color: #94a3b8;
-        padding: 2px 6px;
+    .scanner-card {
+        background: #1a1a1a;
+        border: 2px solid #333;
         border-radius: 4px;
-        font-size: 0.7em;
-    }
-
-    .station-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
         margin-bottom: 12px;
-    }
-
-    .ps-display {
-        font-size: 1.8em;
-        font-weight: 900;
-        letter-spacing: 2px;
-        color: #fff;
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-        text-transform: uppercase;
-    }
-
-    .ps-display.empty {
-        color: #2e344e;
-        font-style: italic;
-        letter-spacing: 1px;
-    }
-
-    .pty-label {
-        background: #334155;
-        color: #f1f5f9;
-        padding: 2px 10px;
-        border-radius: 20px;
-        font-size: 0.7em;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin-top: 5px;
-    }
-
-    .rt-display {
-        background: #000;
-        border: 1px solid #004d1a;
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        font-family: 'JetBrains Mono', monospace;
-        color: #00ff41;
-        font-size: 0.9em;
-        overflow: hidden;
-    }
-
-    .flags-grid {
         display: flex;
-        gap: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        font-family: 'Inter', sans-serif;
     }
 
-    .flag-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.75em;
-        font-weight: bold;
-        color: #334155;
-        transition: color 0.3s;
+    .card-edge {
+        width: 6px;
+        background: #444;
+        border-right: 1px solid #000;
     }
 
-    .flag-item.active {
-        color: #e2e8f0;
-    }
-
-    .flag-indicator {
-        width: 8px;
-        height: 8px;
-        background: #1e293b;
-        border-radius: 50%;
-        box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.5);
-    }
-
-    .flag-item.active[title*="TMC"] .flag-indicator {
-        background: #ff0055;
-        box-shadow: 0 0 8px #ff0055;
-    }
-
-    .flag-item.active[title*="Announcement"] .flag-indicator {
-        background: #ffaa00;
-        box-shadow: 0 0 8px #ffaa00;
-    }
-
-    .flag-item.active[title*="Programme"] .flag-indicator {
+    .scanner-card:hover .card-edge {
         background: #00d2ff;
-        box-shadow: 0 0 8px #00d2ff;
+        box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+
+    .card-body {
+        flex-grow: 1;
+        padding: 12px;
+        background: linear-gradient(180deg, #1f1f1f 0%, #151515 100%);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #333;
+        padding-bottom: 4px;
+    }
+
+    .lcd-freq {
+        font-family: 'JetBrains Mono', monospace;
+        color: #00d2ff;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+
+    .lcd-pi {
+        font-size: 0.7em;
+        color: #666;
+        font-family: monospace;
+    }
+
+    .station-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 10px;
+    }
+
+    .station-name-lcd {
+        font-size: 1.5em;
+        font-weight: 900;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+    }
+
+    .station-name-lcd.dim {
+        color: #333;
+        font-style: italic;
+    }
+
+    .pty-lcd {
+        font-size: 0.65em;
+        background: #000;
+        color: #aaa;
+        padding: 2px 8px;
+        border-radius: 10px;
+        border: 1px solid #333;
+        font-weight: bold;
+    }
+
+    .rt-terminal {
+        background: #000;
+        border-radius: 3px;
+        padding: 6px 10px;
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #003300;
+    }
+
+    .msg-prefix {
+        color: #00ff41;
+        font-family: monospace;
+        font-weight: bold;
+    }
+
+    .msg-content {
+        color: #00ff41;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85em;
+        text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
+    }
+
+    .scanner-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .flag-indicators {
+        display: flex;
+        gap: 6px;
+    }
+
+    .indicator {
+        font-size: 0.6em;
+        font-weight: 900;
+        color: #222;
+        background: #0a0a0a;
+        padding: 2px 6px;
+        border-radius: 2px;
+        border: 1px solid #1a1a1a;
+    }
+
+    .active-tmc {
+        background: #ff0055;
+        color: #fff;
+        box-shadow: 0 0 8px rgba(255, 0, 85, 0.5);
+        border-color: #ff3377;
+    }
+
+    .active-ta {
+        background: #ffaa00;
+        color: #000;
+        box-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+        border-color: #ffcc00;
+    }
+
+    .active-tp {
+        background: #00d2ff;
+        color: #000;
+        box-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
+        border-color: #33e0ff;
+    }
+
+    .hit-stats {
+        font-family: monospace;
+        font-size: 0.7em;
+    }
+
+    .hits-label {
+        color: #555;
+    }
+
+    .hits-val {
+        color: #00ff41;
+        font-weight: bold;
+    }
+
+    .no-signal {
+        padding: 40px;
+        text-align: center;
+        background: #111;
+        border: 2px dashed #222;
+        border-radius: 8px;
+    }
+
+    .lcd-text {
+        font-size: 1.5em;
+        font-weight: 900;
+        color: #222;
+        letter-spacing: 4px;
+    }
+
+    .lcd-sub {
+        font-size: 0.7em;
+        color: #333;
+        margin-top: 10px;
     }
 </style>

@@ -66,7 +66,6 @@ class Scanner:
 
     def scan_band(self):
         logging.info("Starting wideband scan...")
-        self.stop()
         time.sleep(1) 
         settings = get_settings()
         integration = settings.get('scan_integration', '0.2')
@@ -93,11 +92,10 @@ class Scanner:
                             freq = start_freq + (i * step)
                             freq_mhz = round(freq / 1000000, 1)
                             if 87.5 <= freq_mhz <= 108.0:
-                                 peaks.append((freq_mhz, db))
-            peaks.sort(key=lambda x: x[1], reverse=True)
-            strongest = peaks[:40] # Analyze top 40 peaks
-            strongest.sort(key=lambda x: x[0]) 
-            return strongest
+                                 peaks.append(freq_mhz)
+            # Remove duplicates and sort
+            unique_peaks = sorted(list(set(peaks)))
+            return unique_peaks
         except Exception as e:
             logging.error(f"Error during band scan: {e}")
             return []
@@ -112,21 +110,28 @@ class Scanner:
         self.scan_next()
 
     def scan_next(self):
-        peaks = self.scan_band()
-        if not peaks:
+        # Use cache if available
+        if not self.peak_cache:
+            logging.info("Scanning entire band for initial peaks...")
+            self.peak_cache = self.scan_band()
+        
+        if not self.peak_cache:
+            logging.warning("No peaks found after scan.")
             self.searching = False
             return self.current_frequency
 
+        # Find next frequency in cache
         next_freq = None
-        for f, db in peaks:
+        for f in self.peak_cache:
             if f > self.current_frequency + 0.05:
                 next_freq = f
                 break
         
         if next_freq is None:
-            next_freq = peaks[0][0]
+            logging.info("End of band reached, wrapping to start of cache.")
+            next_freq = self.peak_cache[0]
         
-        logging.info(f"Trying frequency: {next_freq} MHz")
+        logging.info(f"Stepping to: {next_freq} MHz (Cached)")
         self.search_start_time = time.time()
         self.tune(next_freq)
         return next_freq
