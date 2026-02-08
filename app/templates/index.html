@@ -420,6 +420,16 @@
                 <button type="button" class="btn-radio green" onclick="tuneDABService()">PLAY</button>
             </div>
 
+            <div class="knob-section">
+                <label>Gain</label>
+                <input type="range" id="dab-gain-slider" min="0" max="50" step="1" value="0" class="slider"
+                    oninput="document.getElementById('dab-gain-val').innerText = this.value">
+                <span id="dab-gain-val" style="font-family: monospace; font-size: 0.9em; min-width: 20px;">0</span>
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                    <input type="checkbox" id="dab-gain-auto" checked> AUTO
+                </label>
+            </div>
+
             <div style="display: flex; align-items: center; gap: 10px;">
                 <button type="button" id="dab-listen-btn" class="btn-radio" onclick="toggleDABListen()"
                     style="background: linear-gradient(135deg, #1e3a5f, #0a1628); border-color: #ff6b35;">
