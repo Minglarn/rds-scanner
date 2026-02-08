@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 from app.scanner import scanner_instance
-from app.database import init_db, get_recent_messages, get_grouped_stations, get_db_connection, get_settings, update_setting
+from app.database import init_db, get_recent_messages, get_grouped_stations, get_db_connection, get_settings, update_setting, clear_all_messages
 from app.mqtt_client import init_mqtt
 
 # Configure logging
@@ -105,6 +105,13 @@ def messages_partial():
     limit = int(request.args.get('limit', 15))
     stations = get_grouped_stations(limit)
     return render_template('messages_list.html', stations=stations)
+
+@app.route('/api/messages/clear', methods=['POST'])
+def clear_messages():
+    clear_all_messages()
+    # Also clear peak cache so next scan is fresh
+    scanner_instance.peak_cache = []
+    return jsonify({'status': 'cleared'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False) # Debug mode False for production use

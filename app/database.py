@@ -168,3 +168,15 @@ def register_signal_peaks(frequencies):
         conn.close()
     except Exception as e:
         logging.error(f"Error registering peaks: {e}")
+
+def clear_all_messages():
+    """Delete all messages from the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM messages')
+        conn.commit()
+        conn.close()
+        logging.info("All messages cleared from database.")
+    except Exception as e:
+        logging.error(f"Error clearing messages: {e}")

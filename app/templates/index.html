@@ -368,7 +368,12 @@
     </div>
 
     <div class="station-feed">
-        <div class="feed-title">Captured Radio Presets / Signal Log</div>
+        <div class="feed-header"
+            style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
+            <div class="feed-title" style="margin-bottom: 0;">Captured Radio Presets / Signal Log</div>
+            <button type="button" class="btn-radio" onclick="clearAll()"
+                style="font-size: 0.65em; padding: 6px 12px;">CLEAR ALL</button>
+        </div>
         <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
             <div
                 style="padding: 100px; text-align: center; color: #111; font-family: 'JetBrains Mono'; font-weight: 900; letter-spacing: 5px;">
@@ -468,6 +473,18 @@
                     alert("Error starting search: " + err);
                     btn.innerText = "ERROR";
                 });
+        }
+
+        function clearAll() {
+            if (confirm('Clear all saved stations? This cannot be undone.')) {
+                fetch('/api/messages/clear', { method: 'POST' })
+                    .then(() => {
+                        document.getElementById('rds-ps').innerText = '---';
+                        document.getElementById('rds-rt').innerText = 'All stations cleared. Start a new search!';
+                        document.getElementById('rds-pty').innerText = '';
+                        htmx.trigger('#messages-log', 'htmx:load');
+                    });
+            }
         }
     </script>
 </body>
