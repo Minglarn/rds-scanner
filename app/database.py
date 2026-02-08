@@ -21,7 +21,7 @@ def init_db():
             pi TEXT,
             ps TEXT,
             rt TEXT,
-            pty INTEGER,
+            pty TEXT, -- Changed to TEXT to store "Talk", "Pop Music" etc directly
             tmc INTEGER,
             ta INTEGER,
             tp INTEGER,
@@ -81,11 +81,14 @@ def save_message(data):
         cursor = conn.cursor()
         
         # Extract fields with defaults
-        frequency = data.get('frequency', 0.0) # Might need to be passed in from scanner state if not in redsea json
+        frequency = data.get('frequency', 0.0)
         pi = data.get('pi', '')
         ps = data.get('ps', '')
         rt = data.get('rt', '')
-        pty = data.get('pty', 0)
+        # Map prog_type (from redsea) to pty column
+        pty = data.get('prog_type', '')
+        if not pty:
+            pty = str(data.get('pty', '')) # Fallback if pty int is provided
         
         # Flags
         tmc = 1 if data.get('tmc') else 0

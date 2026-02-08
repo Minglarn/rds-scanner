@@ -12,7 +12,7 @@
                 {{ station.ps if station.ps else "TUNING..." }}
             </div>
 
-            <div class="pty-label">{{ station.pty | pty_name }}</div>
+            <div class="pty-label">{{ station.pty if station.pty else '' }}</div>
         </div>
 
         <!-- Scrolling Ticker Area -->
