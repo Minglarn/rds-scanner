@@ -215,10 +215,25 @@ def dab_tune():
 @app.route('/api/dab/audio')
 def dab_audio():
     """Proxy DAB audio stream from welle-cli."""
-    audio_url = dab_scanner.get_audio_url()
-    if audio_url:
-        return redirect(audio_url)
-    return jsonify({'error': 'DAB not running'}), 400
+    import requests as req
+    
+    if not dab_scanner.running:
+        return jsonify({'error': 'DAB not running'}), 400
+    
+    def generate():
+        try:
+            # Stream from welle-cli's internal web server
+            with req.get(f'http://localhost:{dab_scanner.web_port}/mp3', stream=True, timeout=30) as r:
+                for chunk in r.iter_content(chunk_size=4096):
+                    if chunk:
+                        yield chunk
+        except Exception as e:
+            logging.error(f"DAB audio proxy error: {e}")
+    
+    return Response(generate(), mimetype='audio/mpeg', headers={
+        'Cache-Control': 'no-cache, no-store',
+        'Connection': 'keep-alive',
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False) # Debug mode False for production use

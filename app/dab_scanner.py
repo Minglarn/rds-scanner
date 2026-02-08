@@ -9,6 +9,7 @@ import threading
 import logging
 import time
 import json
+import sys
 import requests
 from app.database import get_settings
 
@@ -85,12 +86,14 @@ class DABScanner:
         logging.info(f"Starting DAB on channel {self.current_channel}")
         
         try:
-            self.process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                preexec_fn=os.setsid
-            )
+            popen_kwargs = {
+                'stdout': subprocess.PIPE,
+                'stderr': subprocess.PIPE,
+            }
+            if sys.platform != 'win32':
+                popen_kwargs['preexec_fn'] = os.setsid
+            
+            self.process = subprocess.Popen(cmd, **popen_kwargs)
             self.running = True
             
             # Wait a moment for welle-cli to start
@@ -109,9 +112,12 @@ class DABScanner:
         with self.lock:
             if self.process:
                 try:
-                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-                except:
-                    pass
+                    if sys.platform != 'win32':
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                    else:
+                        self.process.terminate()
+                except Exception as e:
+                    logging.debug(f"DAB stop error: {e}")
                 self.process = None
             self.running = False
             self.services = []

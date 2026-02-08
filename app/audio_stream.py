@@ -7,6 +7,7 @@ import os
 import signal
 import threading
 import logging
+import sys
 from flask import Response
 from app.database import get_settings
 
@@ -37,13 +38,16 @@ class AudioStreamer:
         logging.info(f"Starting audio stream: {frequency} MHz")
         
         try:
-            process = subprocess.Popen(
-                cmd, 
-                shell=True, 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.DEVNULL,
-                preexec_fn=os.setsid
-            )
+            # preexec_fn only works on Unix
+            popen_kwargs = {
+                'shell': True,
+                'stdout': subprocess.PIPE,
+                'stderr': subprocess.DEVNULL,
+            }
+            if sys.platform != 'win32':
+                popen_kwargs['preexec_fn'] = os.setsid
+            
+            process = subprocess.Popen(cmd, **popen_kwargs)
             
             with self.lock:
                 self.process = process
@@ -68,9 +72,12 @@ class AudioStreamer:
         with self.lock:
             if self.process:
                 try:
-                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-                except:
-                    pass
+                    if sys.platform != 'win32':
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                    else:
+                        self.process.terminate()
+                except Exception as e:
+                    logging.debug(f"Stop process error: {e}")
                 self.process = None
                 logging.info("Audio stream stopped")
 
