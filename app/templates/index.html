@@ -4,100 +4,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDS Scanner</title>
+    <title>RDS Tactical Scanner</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
+        :root {
+            --bg-dark: #0f111a;
+            --card-bg: #1a1d2e;
+            --accent-blue: #00d2ff;
+            --accent-green: #00ff41;
+            --text-main: #e0e6ed;
+            --text-dim: #94a3b8;
+            --border-color: #2e344e;
+        }
+
         body {
-            font-family: sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
             margin: 0;
             padding: 20px;
+            letter-spacing: -0.01em;
         }
 
         .container {
-            max_width: 800px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
         .card {
-            background: #2d2d2d;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
         }
 
-        button {
-            background: #007bff;
-            border: none;
-            cursor: pointer;
-            transition: background 0.2s;
-            color: white;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        .status-badge {
-            font-weight: bold;
-            color: #4caf50;
-            margin-left: 10px;
-        }
-
-        .nav-Link {
-            color: #aaa;
-            text-decoration: none;
-            margin-left: auto;
-        }
-
-        .nav-link:hover {
-            color: #fff;
+        h1,
+        h2 {
+            margin-top: 0;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
         .header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
-        .log-table {
-            width: 100%;
-            border-collapse: collapse;
+        .nav-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.9em;
+            font-weight: 600;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .log-table th,
-        .log-table td {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 1px solid #444;
+        .nav-link:hover {
+            opacity: 1;
         }
 
-        .log-table th {
-            background: #333;
+        .status-panel {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .badge {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.8em;
+        .status-item {
+            text-align: center;
         }
 
-        .badge-tmc {
-            background: #e91e63;
+        .status-label {
+            display: block;
+            font-size: 0.7em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+
+        .status-value {
+            font-size: 1.4em;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-blue);
+        }
+
+        .controls {
+            display: grid;
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        input[type="number"] {
+            background: #0f111a;
+            border: 1px solid var(--border-color);
             color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 1em;
+            width: 120px;
         }
 
-        .badge-ta {
-            background: #ff9800;
+        button {
+            background: var(--accent-blue);
             color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .badge-tp {
-            background: #2196f3;
-            color: #fff;
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 210, 255, 0.3);
+        }
+
+        .btn-scan {
+            background: var(--accent-green);
+        }
+
+        .btn-scan:hover {
+            box-shadow: 0 4px 12px rgba(0, 255, 65, 0.3);
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--accent-blue);
+        }
+
+        #scan-status {
+            color: #ffeb3b;
+            font-size: 0.9em;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .status-panel {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .control-group {
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -106,43 +190,46 @@
     <div class="container">
         <div class="card">
             <div class="header">
-                <h1>RDS Scanner Control</h1>
-                <a href="/settings" class="nav-link">Settings &#9881;</a>
+                <h1>RDS TACTICAL SCANNER</h1>
+                <a href="/settings" class="nav-link">SETTINGS &#9881;</a>
             </div>
 
-            <div style="margin-bottom: 15px; padding: 10px; background: #222; border-radius: 4px;">
-                <strong>Current Status:</strong>
-                <span id="status-freq">--.-</span> MHz |
-                Gain: <span id="status-gain">--</span>
-                <span id="scan-status" style="display:none; color: #ffeb3b; margin-left: 10px;">Scanning...</span>
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value" id="status-freq">--.-</span> <small>MHz</small>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="status-gain">--</span> <small>dB</small>
+                </div>
+                <div id="scan-status" style="display:none; text-align: center;">HUNTING RDS...</div>
             </div>
 
             <div class="controls">
-                <div style="flex-basis: 100%; margin-bottom: 10px;">
-                    <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" style="width: 150px;"
-                        placeholder="MHz">
-                    <button onclick="tune()">Tune</button>
-                    <button onclick="scanNext()" style="background: #28a745; margin-left: 10px;">Auto Search
-                        &raquo;</button>
+                <div class="control-group">
+                    <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="MHz">
+                    <button onclick="tune()">SET FREQ</button>
+                    <button class="btn-scan" onclick="scanNext()">AUTO SEARCH &raquo;</button>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
-                    <label for="gain-slider" style="margin:0;">Gain:</label>
-                    <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" style="flex-grow: 1;"
+                <div class="control-group">
+                    <label style="font-size: 0.8em; font-weight: bold; color: var(--text-dim);">GAIN ADJ:</label>
+                    <input type="range" id="gain-slider" min="0" max="50" step="1" value="0"
                         oninput="document.getElementById('gain-val').innerText = this.value">
-                    <span id="gain-val" style="width: 30px;">0</span>
-                    <label style="margin:0; font-size: 0.9em; display: flex; align-items: center; gap: 5px;">
-                        <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> Auto
+                    <span id="gain-val" style="width: 30px; font-family: monospace;">0</span>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
                     </label>
-                    <button onclick="setGain()">Set Gain</button>
+                    <button onclick="setGain()">APPLY GAIN</button>
                 </div>
             </div>
         </div>
 
-        <div class="card">
-            <h2>Live Messages</h2>
+        <div class="card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+            <h2 style="padding-left: 10px;">SIGNAL CAPTURES</h2>
             <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
-                Loading messages...
+                <div style="padding: 20px; text-align: center; color: var(--text-dim);">initializing capture...</div>
             </div>
         </div>
     </div>
@@ -159,32 +246,28 @@
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
-                    // Update display labels ONLY (don't touch inputs unless we just loaded)
                     document.getElementById('status-freq').textContent = data.frequency;
                     document.getElementById('status-gain').textContent = data.gain;
 
                     const scanStatus = document.getElementById('scan-status');
                     if (data.searching) {
-                        scanStatus.innerText = `Scanning: ${data.frequency} MHz...`;
-                        scanStatus.style.display = 'inline';
-                        // Accelerate polling when searching
+                        scanStatus.innerText = `HUNTING RDS: ${data.frequency} MHz`;
+                        scanStatus.style.display = 'block';
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 1000);
                     } else {
                         scanStatus.style.display = 'none';
-                        // Normal slow polling
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 3000);
                     }
 
-                    // Set initial values if inputs are empty/default
                     if (!document.getElementById('freq-input').value) {
                         document.getElementById('freq-input').value = data.frequency;
                     }
                 });
         }
 
-        statusInterval = setInterval(updateStatus, 3000); // Polling status slower to be safe
+        statusInterval = setInterval(updateStatus, 3000);
         updateStatus();
 
         function tune() {
@@ -210,6 +293,7 @@
             fetch('/api/scan/next', { method: 'POST' })
                 .then(r => r.json())
                 .then(data => {
+                    // No more alerts here.
                     updateStatus();
                 });
         }

@@ -1,30 +1,131 @@
-<table class="log-table">
-    <thead>
-        <tr>
-            <th>Time</th>
-            <th>Freq</th>
-            <th>PI</th>
-            <th>PS</th>
-            <th>RT</th>
-            <th>PTY</th>
-            <th>Flags</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for msg in messages %}
-        <tr>
-            <td>{{ msg.timestamp.split(' ')[1].split('.')[0] }}</td>
-            <td>{{ msg.frequency }}</td>
-            <td>{{ msg.pi }}</td>
-            <td><strong>{{ msg.ps }}</strong></td>
-            <td>{{ msg.rt }}</td>
-            <td>{{ msg.pty }}</td>
-            <td>
-                {% if msg.tmc %}<span class="badge badge-tmc">TMC</span>{% endif %}
-                {% if msg.ta %}<span class="badge badge-ta">TA</span>{% endif %}
-                {% if msg.tp %}<span class="badge badge-tp">TP</span>{% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% for msg in messages %}
+<div class="message-card">
+    <div class="message-header">
+        <span class="message-time">{{ msg.timestamp.split(' ')[1].split('.')[0] }}</span>
+        <span class="message-freq">{{ msg.frequency }} MHz</span>
+        <span class="message-pi" title="Program Identification: {{ msg.pi }}">PI: {{ msg.pi }}</span>
+    </div>
+
+    <div class="message-body">
+        <div class="ps-row">
+            <span class="station-name">{{ msg.ps if msg.ps else "Unknown Station" }}</span>
+            <span class="pty-tag">{{ msg.pty | pty_name }}</span>
+        </div>
+
+        {% if msg.rt %}
+        <div class="rt-row">
+            <p class="radiotext">{{ msg.rt }}</p>
+        </div>
+        {% endif %}
+
+        <div class="flags-row">
+            {% if msg.tmc %}
+            <span class="badge badge-tmc" title="Traffic Message Channel">TRAFFIC DATA (TMC)</span>
+            {% endif %}
+
+            {% if msg.ta %}
+            <span class="badge badge-ta" title="Traffic Announcement">ANNOUNCEMENT ACTIVE (TA)</span>
+            {% endif %}
+
+            {% if msg.tp %}
+            <span class="badge badge-tp" title="Traffic Programme">TRAFFIC CAPABLE (TP)</span>
+            {% endif %}
+
+            {% if not msg.tmc and not msg.ta and not msg.tp %}
+            <span class="badge-none">No Traffic Flags</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<style>
+    .message-card {
+        background: #333;
+        border-left: 4px solid #444;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: transform 0.1s;
+    }
+
+    .message-card:hover {
+        border-left-color: #007bff;
+        background: #383838;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85em;
+        color: #888;
+        border-bottom: 1px solid #444;
+        padding-bottom: 6px;
+        margin-bottom: 8px;
+    }
+
+    .message-pi {
+        cursor: help;
+        font-family: monospace;
+    }
+
+    .ps-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .station-name {
+        font-size: 1.4em;
+        font-weight: bold;
+        color: #fff;
+        letter-spacing: 1px;
+    }
+
+    .pty-tag {
+        background: #444;
+        color: #aaa;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        text-transform: uppercase;
+    }
+
+    .rt-row {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 8px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        border: 1px dashed #444;
+    }
+
+    .radiotext {
+        margin: 0;
+        font-family: 'Courier New', Courier, monospace;
+        color: #00ff41;
+        /* Tactical Green */
+        font-size: 1.1em;
+    }
+
+    .flags-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .badge {
+        font-size: 0.75em;
+        font-weight: bold;
+        padding: 4px 10px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-none {
+        font-size: 0.7em;
+        color: #666;
+        font-style: italic;
+    }
+</style>

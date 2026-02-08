@@ -9,7 +9,24 @@ from app.mqtt_client import init_mqtt
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+PTY_NAMES = {
+    0: "None", 1: "News", 2: "Current Affairs", 3: "Information", 4: "Sport",
+    5: "Education", 6: "Drama", 7: "Culture", 8: "Science", 9: "Varied",
+    10: "Pop Music", 11: "Rock Music", 12: "Easy Listening", 13: "Light Classical",
+    14: "Serious Classical", 15: "Other Music", 16: "Weather", 17: "Finance",
+    18: "Children's", 19: "Social Affairs", 20: "Religion", 21: "Phone In",
+    22: "Travel", 23: "Leisure", 24: "Jazz", 25: "Country", 26: "National Music",
+    27: "Oldies", 28: "Folk", 29: "Documentary", 30: "Alarm Test", 31: "Alarm"
+}
+
 app = Flask(__name__)
+
+@app.template_filter('pty_name')
+def pty_name_filter(code):
+    try:
+        return PTY_NAMES.get(int(code), f"Type {code}")
+    except:
+        return f"Type {code}"
 
 # Initialize components
 init_db()
