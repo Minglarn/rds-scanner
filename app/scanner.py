@@ -132,26 +132,46 @@ class Scanner:
         return next_freq
 
     def _run_loop(self):
+        import queue
         settings = get_settings()
         device = settings.get('device_index', '0')
-        gain_flag = f"-g {self.current_gain}" if self.current_gain != 'auto' else ""
         
+        # If gain is 0 but manual, we use 0.1 to avoid triggering "auto" in some rtl versions
+        gain_val = self.current_gain
+        if gain_val != 'auto' and float(gain_val) == 0:
+            gain_val = 0.1
+            
+        gain_flag = f"-g {gain_val}" if self.current_gain != 'auto' else ""
         full_cmd = f"rtl_fm -d {device} -f {self.current_frequency}M -M fm -s 171k -A fast -r 171k -l 0 -E deemp {gain_flag} | redsea -u"
         
         try:
             self.process = subprocess.Popen(full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid) 
             
+            q = queue.Queue()
+            def reader(pipe, q):
+                try:
+                    for line in iter(pipe.readline, ''):
+                        if not line: break
+                        q.put(line)
+                except: pass
+                finally: pipe.close()
+
+            reader_thread = threading.Thread(target=reader, args=(self.process.stdout, q), daemon=True)
+            reader_thread.start()
+
             while not self.stop_event.is_set():
                 # Check search timeout (if no RDS within 4 seconds, skip to next)
                 if self.searching:
                     elapsed = time.time() - self.search_start_time
                     if elapsed > 4.0: # 4 second timeout for RDS lock
                         logging.info(f"No RDS lock on {self.current_frequency} MHz after {round(elapsed, 1)}s. Skipping...")
+                        # Run scan_next in a thread so we don't block this breaking loop
                         threading.Thread(target=self.scan_next, daemon=True).start()
                         break 
 
-                line = self.process.stdout.readline()
-                if not line:
+                try:
+                    line = q.get(timeout=0.5) # Check stop_event every 0.5s even if no data
+                except queue.Empty:
                     if self.process.poll() is not None:
                         break
                     continue
@@ -160,7 +180,6 @@ class Scanner:
                     data = json.loads(line)
                     data['frequency'] = self.current_frequency
                     
-                    # If we receive ANY valid RDS data (like pi or ps), we found a station!
                     if self.searching and (data.get('pi') or data.get('ps') or data.get('rt')):
                         logging.info(f"RDS Locked on {self.current_frequency} MHz! Stopping search.")
                         self.searching = False 
