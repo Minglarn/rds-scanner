@@ -4,232 +4,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDS Tactical Scanner</title>
+    <title>RDS DIGITAL SCANNER</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Inter:wght@400;700;900&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f111a;
-            --card-bg: #1a1d2e;
-            --accent-blue: #00d2ff;
+            --bg-deep: #0a0b10;
+            --panel-bg: #141620;
+            --lcd-bg: #000000;
+            --lcd-text: #00d2ff;
+            --lcd-glow: rgba(0, 210, 255, 0.4);
             --accent-green: #00ff41;
-            --text-main: #e0e6ed;
-            --text-dim: #94a3b8;
-            --border-color: #2e344e;
+            --accent-orange: #ff9d00;
+            --text-silver: #c9d1d9;
+            --border-metal: #2d334a;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-silver);
             margin: 0;
             padding: 20px;
-            letter-spacing: -0.01em;
+            display: flex;
+            justify-content: center;
         }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
+        .scanner-frame {
+            width: 100%;
+            max-width: 850px;
+            background: #1c1f2e;
+            border: 4px solid #232738;
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 2px 10px rgba(255, 255, 255, 0.05);
+            position: relative;
         }
 
-        .card {
-            background: var(--card-bg);
-            padding: 24px;
+        .scanner-panel {
+            background: var(--panel-bg);
             border-radius: 12px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--border-color);
+            padding: 25px;
+            border: 1px solid var(--border-metal);
         }
 
-        h1,
-        h2 {
-            margin-top: 0;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .header {
+        .panel-top {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
+            align-items: flex-start;
+            margin-bottom: 25px;
         }
 
-        .nav-link {
-            color: var(--accent-blue);
+        .brand {
+            font-weight: 900;
+            font-size: 1.2em;
+            letter-spacing: 2px;
+            color: #4b5563;
+        }
+
+        .settings-btn {
+            background: #232738;
+            color: #94a3b8;
             text-decoration: none;
-            font-size: 0.9em;
-            font-weight: 600;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .nav-link:hover {
-            opacity: 1;
-        }
-
-        .status-panel {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 16px;
+            padding: 8px 15px;
             border-radius: 8px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .status-item {
-            text-align: center;
-        }
-
-        .status-label {
-            display: block;
-            font-size: 0.7em;
-            text-transform: uppercase;
-            color: var(--text-dim);
-            margin-bottom: 4px;
+            font-size: 0.8em;
             font-weight: bold;
-        }
-
-        .status-value {
-            font-size: 1.4em;
-            font-weight: 800;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--accent-blue);
-        }
-
-        .controls {
-            display: grid;
-            gap: 20px;
-        }
-
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        input[type="number"] {
-            background: #0f111a;
-            border: 1px solid var(--border-color);
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 1em;
-            width: 120px;
-        }
-
-        button {
-            background: var(--accent-blue);
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 700;
-            cursor: pointer;
+            border: 1px solid #2e344e;
             transition: all 0.2s;
         }
 
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 210, 255, 0.3);
+        .settings-btn:hover {
+            background: #2e344e;
+            color: #fff;
         }
 
-        .btn-scan {
-            background: var(--accent-green);
+        .lcd-display {
+            background: var(--lcd-bg);
+            border: 3px solid #000;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.1), 0 0 15px rgba(0, 0, 0, 1);
+            position: relative;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
         }
 
-        .btn-scan:hover {
-            box-shadow: 0 4px 12px rgba(0, 255, 65, 0.3);
+        .lcd-main {
+            border-right: 1px solid #1a1d2e;
         }
 
-        input[type="range"] {
-            flex-grow: 1;
-            accent-color: var(--accent-blue);
+        .freq-display {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--lcd-text);
+            text-shadow: 0 0 15px var(--lcd-glow);
+            font-size: 4.5em;
+            line-height: 1;
+            margin-bottom: 5px;
         }
 
-        #scan-status {
-            color: #ffeb3b;
-            font-size: 0.9em;
+        .freq-unit {
+            font-size: 0.25em;
+            margin-left: 5px;
+            vertical-align: bottom;
+        }
+
+        .search-message {
+            color: var(--accent-orange);
+            font-family: monospace;
             font-weight: bold;
-            animation: pulse 1.5s infinite;
+            font-size: 1em;
+            height: 20px;
+            text-shadow: 0 0 10px rgba(255, 157, 0, 0.4);
+            letter-spacing: 1px;
         }
 
-        @keyframes pulse {
-            0% {
-                opacity: 0.6;
-            }
+        .lcd-side {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+        }
 
-            50% {
-                opacity: 1;
-            }
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+        }
 
-            100% {
-                opacity: 0.6;
-            }
+        .stat-label {
+            font-size: 0.7em;
+            text-transform: uppercase;
+            color: #4b5563;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+        }
+
+        .stat-val {
+            color: var(--accent-green);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6em;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 2fr 3fr;
+            gap: 25px;
+            align-items: center;
+        }
+
+        .numpad {
+            background: #1a1d2e;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #232738;
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="number"] {
+            background: #000;
+            border: 1px solid #2e344e;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100px;
+            font-size: 1.2em;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            box-shadow: 0 4px 0 #1e40af;
+        }
+
+        .btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #1e40af;
+        }
+
+        .btn-green {
+            background: #059669;
+            box-shadow: 0 4px 0 #065f46;
+        }
+
+        .btn-green:active {
+            box-shadow: 0 1px 0 #065f46;
+        }
+
+        .gain-control {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #232738;
+        }
+
+        .gain-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .slider {
+            flex-grow: 1;
+            accent-color: var(--lcd-text);
+            cursor: pointer;
+        }
+
+        .captures-section {
+            margin-top: 40px;
+        }
+
+        .captures-section h2 {
+            font-size: 1.1em;
+            color: #4b5563;
+            letter-spacing: 3px;
+            border-bottom: 2px solid #1a1d2e;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
         }
 
         @media (max-width: 600px) {
-            .status-panel {
-                flex-direction: column;
-                gap: 16px;
+            .lcd-display {
+                grid-template-columns: 1fr;
             }
 
-            .control-group {
-                justify-content: center;
+            .lcd-main {
+                border: none;
+                border-bottom: 1px solid #1a1d2e;
+                padding-bottom: 20px;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="header">
-                <h1>RDS TACTICAL SCANNER</h1>
-                <a href="/settings" class="nav-link">SETTINGS &#9881;</a>
+    <div class="scanner-frame">
+        <div class="scanner-panel">
+            <div class="panel-top">
+                <div class="brand">SDR // RDS TACTICAL</div>
+                <a href="/settings" class="settings-btn">SYSTEM CONFIG</a>
             </div>
 
-            <div class="status-panel">
-                <div class="status-item">
-                    <span class="status-label">Frequency</span>
-                    <span class="status-value" id="status-freq">--.-</span> <small>MHz</small>
+            <div class="lcd-display">
+                <div class="lcd-main">
+                    <div class="stat-label">Frequency</div>
+                    <div class="freq-display" id="status-freq">--.- <span class="freq-unit">MHz</span></div>
+                    <div class="search-message" id="search-msg"></div>
                 </div>
-                <div class="status-item">
-                    <span class="status-label">Gain</span>
-                    <span class="status-value" id="status-gain">--</span> <small>dB</small>
-                </div>
-                <div id="scan-status" style="display:none; text-align: center;">HUNTING RDS...</div>
-            </div>
-
-            <div class="controls">
-                <div class="control-group">
-                    <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="MHz">
-                    <button onclick="tune()">SET FREQ</button>
-                    <button class="btn-scan" onclick="scanNext()">AUTO SEARCH &raquo;</button>
-                </div>
-
-                <div class="control-group">
-                    <label style="font-size: 0.8em; font-weight: bold; color: var(--text-dim);">GAIN ADJ:</label>
-                    <input type="range" id="gain-slider" min="0" max="50" step="1" value="0"
-                        oninput="document.getElementById('gain-val').innerText = this.value">
-                    <span id="gain-val" style="width: 30px; font-family: monospace;">0</span>
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
-                    </label>
-                    <button onclick="setGain()">APPLY GAIN</button>
+                <div class="lcd-side">
+                    <div class="stat-box">
+                        <span class="stat-label">Gain Level</span>
+                        <span class="stat-val" id="status-gain">--</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">SDR Status</span>
+                        <span class="stat-val" id="status-power"
+                            style="font-size: 0.9em; color: var(--accent-orange);">INITIALIZING</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
-            <h2 style="padding-left: 10px;">SIGNAL CAPTURES</h2>
-            <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
-                <div style="padding: 20px; text-align: center; color: var(--text-dim);">initializing capture...</div>
+            <div class="controls-grid">
+                <div class="numpad">
+                    <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="00.0">
+                    <button class="btn" onclick="tune()">SET</button>
+                    <button class="btn btn-green" onclick="scanNext()">SEARCH</button>
+                </div>
+
+                <div class="gain-control">
+                    <div class="stat-label">Sensitivity / Gain Control</div>
+                    <div class="gain-row">
+                        <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" class="slider"
+                            oninput="document.getElementById('gain-val').innerText = this.value">
+                        <span id="gain-val" style="width: 30px; font-weight: bold;">0</span>
+                        <label
+                            style="font-size: 0.7em; font-weight: bold; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
+                        </label>
+                        <button class="btn" style="padding: 6px 12px; font-size: 0.7em;"
+                            onclick="setGain()">APPLY</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="captures-section">
+                <h2>Live Signal Captures</h2>
+                <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
+                    <div style="padding: 40px; text-align: center; color: #444; font-family: monospace;">Awaiting
+                        synchronization...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -246,17 +329,20 @@
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById('status-freq').textContent = data.frequency;
-                    document.getElementById('status-gain').textContent = data.gain;
+                    document.getElementById('status-freq').innerHTML = `${data.frequency.toFixed(1)} <span class="freq-unit">MHz</span>`;
+                    document.getElementById('status-gain').textContent = data.gain.toString().toUpperCase();
 
-                    const scanStatus = document.getElementById('scan-status');
+                    const powerStatus = document.getElementById('status-power');
+                    powerStatus.textContent = data.running ? 'LOCKED' : 'OFFLINE';
+                    powerStatus.style.color = data.running ? 'var(--accent-green)' : 'var(--accent-orange)';
+
+                    const searchMsg = document.getElementById('search-msg');
                     if (data.searching) {
-                        scanStatus.innerText = `HUNTING RDS: ${data.frequency} MHz`;
-                        scanStatus.style.display = 'block';
+                        searchMsg.innerText = ">> HUNTING FOR RDS LOCK...";
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 1000);
                     } else {
-                        scanStatus.style.display = 'none';
+                        searchMsg.innerText = "";
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 3000);
                     }
@@ -293,7 +379,6 @@
             fetch('/api/scan/next', { method: 'POST' })
                 .then(r => r.json())
                 .then(data => {
-                    // No more alerts here.
                     updateStatus();
                 });
         }

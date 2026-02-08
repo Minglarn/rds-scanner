@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 from app.scanner import scanner_instance
-from app.database import init_db, get_recent_messages, get_db_connection, get_settings, update_setting
+from app.database import init_db, get_recent_messages, get_grouped_stations, get_db_connection, get_settings, update_setting
 from app.mqtt_client import init_mqtt
 
 # Configure logging
@@ -75,8 +75,8 @@ def scan_next():
 
 @app.route('/api/messages', methods=['GET'])
 def messages():
-    limit = int(request.args.get('limit', 50))
-    msgs = get_recent_messages(limit)
+    limit = int(request.args.get('limit', 15))
+    msgs = get_grouped_stations(limit)
     return jsonify(msgs)
 
 @app.route('/settings')
@@ -102,9 +102,9 @@ def save_settings_route():
 @app.route('/partials/messages')
 def messages_partial():
     # Return HTML fragment for HTMX
-    limit = int(request.args.get('limit', 20))
-    messages = get_recent_messages(limit)
-    return render_template('messages_list.html', messages=messages)
+    limit = int(request.args.get('limit', 15))
+    stations = get_grouped_stations(limit)
+    return render_template('messages_list.html', stations=stations)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False) # Debug mode False for production use
