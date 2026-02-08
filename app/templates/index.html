@@ -471,6 +471,8 @@
             document.getElementById('gain-slider').disabled = isAuto;
         }
 
+        let currentMode = 'fm';
+        let dabListening = false;
         let statusInterval = null;
 
         function updateStatus() {
@@ -620,9 +622,6 @@
         }
 
         // ========== DAB FUNCTIONS ==========
-
-        let currentMode = 'fm';
-        let dabListening = false;
 
         function toggleRadioMode() {
             const checkbox = document.getElementById('mode-toggle');
