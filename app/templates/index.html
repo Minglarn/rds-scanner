@@ -4,309 +4,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDS DIGITAL SCANNER</title>
+    <title>RDS TACTICAL MONITOR</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Inter:wght@400;700;900&display=swap"
         rel="stylesheet">
     <style>
         :root {
-            --bg-deep: #08090c;
-            --bezel-dark: #12141a;
-            --lcd-bg: #000;
-            --lcd-cyan: #00d2ff;
-            --lcd-amber: #ff9d00;
-            --lcd-green: #00ff41;
-            --text-dim: #4b5563;
+            --bg-base: #020408;
+            --bg-panel: #0a0c10;
+            --accent-blue: #00d2ff;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --border: #1a1e26;
+            --text: #cbd5e1;
+            --text-muted: #4b5563;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg-deep);
-            color: #d1d5db;
+            background: var(--bg-base);
+            color: var(--text);
             margin: 0;
-            padding: 20px;
+            overflow: hidden;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        .hardware-frame {
-            width: 100%;
-            max-width: 800px;
-            background: var(--bezel-dark);
-            border: 4px solid #1a1c24;
-            border-radius: 12px;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.9);
-            padding: 2px;
-        }
-
-        .panel {
-            background: #15171e;
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid #232738;
-        }
-
-        .panel-header {
+        header {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 15px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .model-num {
-            font-size: 0.7em;
-            color: #333;
-            font-weight: 900;
-            letter-spacing: 3px;
-        }
-
-        .settings-link {
-            color: #666;
-            text-decoration: none;
-            font-size: 0.75em;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .settings-link:hover {
-            color: #fff;
-        }
-
-        .lcd-screen {
-            background: var(--lcd-bg);
-            border: 2px solid #000;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 25px;
-            box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.05);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .lcd-row-1 {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-
-        .freq-readout {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--lcd-cyan);
-            font-size: 4em;
-            line-height: 0.9;
-            font-weight: 800;
-            text-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
-        }
-
-        .freq-suffix {
-            font-size: 0.3em;
-            margin-left: 5px;
-            color: #1e3a4e;
-        }
-
-        .status-labels {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            text-align: right;
-        }
-
-        .label-box {
-            font-family: monospace;
-            font-size: 0.7em;
-            padding: 2px 6px;
-            border-radius: 2px;
-            background: #111;
-            color: #222;
-        }
-
-        .label-box.on {
-            color: var(--lcd-green);
-            text-shadow: 0 0 5px var(--lcd-green);
-            background: #001a00;
-        }
-
-        .lcd-row-2 {
-            border-top: 1px solid #111;
-            padding-top: 8px;
-            color: var(--lcd-amber);
-            font-family: monospace;
-            font-size: 0.9em;
-            font-weight: bold;
-            height: 1.2em;
-        }
-
-        .controls-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
             gap: 20px;
-            margin-bottom: 30px;
+            flex-shrink: 0;
+            z-index: 100;
         }
 
-        .control-group {
-            background: #1a1d2e;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #232738;
-        }
-
-        .group-label {
-            font-size: 0.6em;
-            color: #4b5563;
+        .brand {
+            font-family: 'JetBrains Mono', monospace;
             font-weight: 900;
-            text-transform: uppercase;
+            font-size: 0.9em;
             letter-spacing: 2px;
-            margin-bottom: 10px;
-            display: block;
+            color: #fff;
+            white-space: nowrap;
         }
 
-        .numpad-row {
+        .status-pill {
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75em;
+            background: #000;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .indicator-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #222;
+        }
+
+        .active-dot.green {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        .active-dot.blue {
+            background: var(--accent-blue);
+            box-shadow: 0 0 8px var(--accent-blue);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-grow: 1;
+            justify-content: flex-end;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.65em;
+            font-weight: 900;
+            color: var(--text-muted);
+            text-transform: uppercase;
         }
 
         input[type="number"] {
             background: #000;
-            border: 1px solid #333;
-            color: var(--lcd-cyan);
+            border: 1px solid var(--border);
+            color: var(--accent-blue);
+            padding: 4px 8px;
+            border-radius: 3px;
+            width: 70px;
             font-family: 'JetBrains Mono';
-            font-size: 1.2em;
-            padding: 8px;
-            border-radius: 4px;
-            width: 100%;
+            font-size: 1em;
         }
 
-        .tactile-btn {
-            background: #2a2d3e;
-            color: #d1d5db;
-            border: 1px solid #3d415a;
-            border-radius: 4px;
-            padding: 10px 15px;
+        .btn {
+            background: #1e293b;
+            color: #fff;
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 3px;
+            font-size: 0.75em;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 3px 0 #1a1c24;
-            font-size: 0.8em;
-            text-transform: uppercase;
+            transition: all 0.1s;
         }
 
-        .tactile-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 1px 0 #1a1c24;
+        .btn:hover {
+            background: #334155;
         }
 
-        .tactile-btn.green {
-            border-color: #059669;
-            color: #10b981;
+        .btn-blue {
+            background: #0369a1;
+            border-color: #0c4a6e;
         }
 
-        .gain-slider-container {
+        .btn-green {
+            background: #065f46;
+            border-color: #064e3b;
+        }
+
+        .gain-slider-box {
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 8px;
         }
 
-        .slider-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         .slider {
+            width: 100px;
+            accent-color: var(--accent-blue);
+        }
+
+        main {
             flex-grow: 1;
-            accent-color: var(--lcd-cyan);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: #000;
         }
 
-        .capture-log {
-            padding-top: 20px;
-            border-top: 1px solid #232738;
+        .feed-header {
+            background: #0a0c10;
+            padding: 4px 15px;
+            font-size: 0.65em;
+            font-weight: bold;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 130px 180px 1fr 60px 60px;
+            gap: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .capture-log h3 {
-            font-size: 0.8em;
-            color: #4b5563;
-            letter-spacing: 3px;
-            margin-bottom: 20px;
+        #messages-log {
+            flex-grow: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #1a1e26 transparent;
         }
 
-        @keyframes blink {
-            0% {
-                opacity: 0.5;
+        #messages-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #messages-log::-webkit-scrollbar-thumb {
+            background: #1a1e26;
+            border-radius: 3px;
+        }
+
+        .config-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.7em;
+            font-weight: bold;
+            padding-left: 15px;
+            border-left: 1px solid var(--border);
+        }
+
+        .config-link:hover {
+            color: #fff;
+        }
+
+        @media (max-width: 800px) {
+            header {
+                flex-wrap: wrap;
+                height: auto;
+                padding: 10px;
             }
 
-            50% {
-                opacity: 1;
+            .controls {
+                width: 100%;
+                justify-content: flex-start;
+                margin-top: 10px;
             }
 
-            100% {
-                opacity: 0.5;
+            .feed-header {
+                display: none;
             }
-        }
-
-        .scanning-blink {
-            animation: blink 1s infinite;
         }
     </style>
 </head>
 
 <body>
-    <div class="hardware-frame">
-        <div class="panel">
-            <div class="panel-header">
-                <div class="model-num">SD-900 / TACTICAL</div>
-                <a href="/settings" class="settings-link">CONFIG</a>
+    <header>
+        <div class="brand">RDS // MONITOR</div>
+
+        <div class="status-pill">
+            <div class="indicator-dot" id="dot-power"></div>
+            <span id="txt-freq">00.0 MHz</span>
+        </div>
+
+        <div class="status-pill" id="search-pill" style="display:none;">
+            <div class="indicator-dot blue active-dot"></div>
+            <span style="color: var(--accent-blue);">SCANNING</span>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <label>FREQ</label>
+                <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="00.0">
+                <button class="btn btn-blue" onclick="tune()">SET</button>
             </div>
 
-            <div class="lcd-screen">
-                <div class="lcd-row-1">
-                    <div class="freq-readout" id="lcd-freq">00.0<span class="freq-suffix">MHz</span></div>
-                    <div class="status-labels">
-                        <div class="label-box" id="lbl-scan">SCAN</div>
-                        <div class="label-box" id="lbl-lock">LOCK</div>
-                        <div class="label-box" id="lbl-db">DATA</div>
-                    </div>
-                </div>
-                <div class="lcd-row-2" id="lcd-msg"></div>
+            <div class="input-group">
+                <button class="btn btn-green" onclick="scanNext()">SEARCH BAND</button>
             </div>
 
-            <div class="controls-section">
-                <div class="control-group">
-                    <span class="group-label">Direct Tune</span>
-                    <div class="numpad-row">
-                        <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="00.0">
-                        <button class="tactile-btn" onclick="tune()">SET</button>
-                        <button class="tactile-btn green" onclick="scanNext()">SRCH</button>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <span class="group-label">RF Sensitivity / Gain</span>
-                    <div class="gain-slider-container">
-                        <div class="slider-row">
-                            <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" class="slider"
-                                oninput="document.getElementById('gain-val').innerText = this.value">
-                            <span id="gain-val" style="width: 25px; font-family: monospace; font-size: 0.9em;">0</span>
-                            <label
-                                style="font-size: 0.7em; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
-                            </label>
-                        </div>
-                        <button class="tactile-btn" style="width: 100%; padding: 6px;" onclick="setGain()">APPLY
-                            GAIN</button>
-                    </div>
-                </div>
+            <div class="gain-slider-box">
+                <label>GAIN</label>
+                <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" class="slider"
+                    oninput="document.getElementById('gain-val').innerText = this.value">
+                <span id="gain-val" style="font-family: monospace; font-size: 0.8em; min-width: 15px;">0</span>
+                <label style="display:flex; align-items:center; gap:3px; cursor:pointer;">
+                    <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
+                </label>
+                <button class="btn" onclick="setGain()">APPLY</button>
             </div>
 
-            <div class="capture-log">
-                <h3>SIGNAL HISTORY / CAPTURES</h3>
-                <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
-                    <div style="padding: 40px; text-align: center; color: #222; font-family: monospace;">AWAITING
-                        SYNC...</div>
-                </div>
+            <a href="/settings" class="config-link">SETTINGS</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="feed-header">
+            <div>Frequency / PI / Pkts</div>
+            <div>Station ID / PTY</div>
+            <div>Radiotext Feed</div>
+            <div>Flags</div>
+            <div>Timestamp</div>
+        </div>
+        <div id="messages-log" hx-get="/partials/messages" hx-trigger="load, every 2s">
+            <div
+                style="padding: 100px; text-align: center; color: #111; font-family: 'JetBrains Mono'; font-weight: 900; letter-spacing: 5px;">
+                SYNCHRONIZING SECURE FEED...
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         function toggleGainAuto(isAuto) {
@@ -319,26 +288,20 @@
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById('lcd-freq').innerHTML = `${data.frequency.toFixed(1)}<span class="freq-suffix">MHz</span>`;
+                    document.getElementById('txt-freq').innerText = `${data.frequency.toFixed(1)} MHz`;
 
-                    const lbScan = document.getElementById('lbl-scan');
-                    const lbLock = document.getElementById('lbl-lock');
-                    const lcdMsg = document.getElementById('lcd-msg');
+                    const dotPower = document.getElementById('dot-power');
+                    dotPower.className = data.running ? 'indicator-dot active-dot green' : 'indicator-dot';
 
+                    const searchPill = document.getElementById('search-pill');
                     if (data.searching) {
-                        lbScan.className = 'label-box on scanning-blink';
-                        lcdMsg.innerText = "SEARCHING BAND...";
+                        searchPill.style.display = 'flex';
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 1000);
                     } else {
-                        lbScan.className = 'label-box';
-                        lcdMsg.innerText = "";
+                        searchPill.style.display = 'none';
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 3000);
-                    }
-
-                    if (data.running) {
-                        document.getElementById('lbl-db').className = 'label-box on';
                     }
 
                     if (!document.getElementById('freq-input').value) {
