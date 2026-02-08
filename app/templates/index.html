@@ -409,6 +409,8 @@
                     <option value="12D">12D (229.072 MHz)</option>
                 </select>
                 <button type="button" class="btn-radio blue" onclick="tuneDAB()">TUNE</button>
+                <button type="button" id="dab-scan-btn" class="btn-radio green" onclick="scanDAB()">SCAN
+                    CHANNELS</button>
             </div>
 
             <div class="knob-section" style="flex-grow: 1;">
@@ -671,6 +673,69 @@
                     console.log('DAB tune:', data);
                     setTimeout(updateDABStatus, 2000);
                 });
+        }
+
+        let dabScanning = false;
+        const dabChannels = ['5A', '5B', '5C', '5D', '7D', '11C', '12A', '12B', '12C', '12D'];
+
+        async function scanDAB() {
+            const btn = document.getElementById('dab-scan-btn');
+
+            if (dabScanning) {
+                dabScanning = false;
+                btn.innerText = 'SCAN CHANNELS';
+                btn.classList.remove('red');
+                btn.classList.add('green');
+                return;
+            }
+
+            dabScanning = true;
+            btn.innerText = 'STOP SCAN';
+            btn.classList.remove('green');
+            btn.classList.add('red');
+
+            let foundServices = [];
+
+            for (let i = 0; i < dabChannels.length && dabScanning; i++) {
+                const channel = dabChannels[i];
+                document.getElementById('rds-ps').innerText = 'SCANNING...';
+                document.getElementById('rds-rt').innerText = `Channel ${channel} (${i + 1}/${dabChannels.length})`;
+                document.getElementById('dab-channel').value = channel;
+
+                await fetch('/api/dab/tune', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel: channel })
+                });
+
+                // Wait for services to be discovered
+                await new Promise(r => setTimeout(r, 4000));
+
+                if (!dabScanning) break;
+
+                // Check for services
+                const status = await fetch('/api/dab/status').then(r => r.json());
+                if (status.services && status.services.length > 0) {
+                    foundServices.push({ channel, count: status.services.length });
+                    document.getElementById('rds-rt').innerText = `Found ${status.services.length} services on ${channel}!`;
+                }
+            }
+
+            dabScanning = false;
+            btn.innerText = 'SCAN CHANNELS';
+            btn.classList.remove('red');
+            btn.classList.add('green');
+
+            if (foundServices.length > 0) {
+                const best = foundServices.reduce((a, b) => a.count > b.count ? a : b);
+                document.getElementById('rds-ps').innerText = 'SCAN COMPLETE';
+                document.getElementById('rds-rt').innerText = `Found ${foundServices.length} active channels. Best: ${best.channel} (${best.count} services)`;
+                document.getElementById('dab-channel').value = best.channel;
+                tuneDAB();
+            } else {
+                document.getElementById('rds-ps').innerText = 'NO SIGNAL';
+                document.getElementById('rds-rt').innerText = 'No DAB services found. Try adjusting antenna.';
+            }
         }
 
         function tuneDABService() {
