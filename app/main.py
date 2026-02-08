@@ -5,6 +5,7 @@ import time
 from app.scanner import scanner_instance
 from app.database import init_db, get_recent_messages, get_grouped_stations, get_db_connection, get_settings, update_setting, clear_all_messages
 from app.mqtt_client import init_mqtt
+from app.audio_stream import get_audio_stream, audio_streamer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -127,6 +128,19 @@ def clear_messages():
     # Also clear peak cache so next scan is fresh
     scanner_instance.peak_cache = []
     return jsonify({'status': 'cleared'})
+
+@app.route('/api/audio/stream')
+def audio_stream():
+    """Stream live FM audio for the current frequency."""
+    freq = request.args.get('freq', scanner_instance.current_frequency)
+    gain = request.args.get('gain', scanner_instance.current_gain)
+    return get_audio_stream(float(freq), gain)
+
+@app.route('/api/audio/stop', methods=['POST'])
+def audio_stop():
+    """Stop the audio stream."""
+    audio_streamer.stop()
+    return jsonify({'status': 'stopped'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False) # Debug mode False for production use

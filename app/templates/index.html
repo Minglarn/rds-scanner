@@ -353,6 +353,15 @@
 
             <button type="button" id="scan-btn" class="btn-radio green" onclick="toggleScan()">SEARCH BAND</button>
 
+            <!-- Audio Player -->
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" id="listen-btn" class="btn-radio" onclick="toggleListen()"
+                    style="background: linear-gradient(135deg, #1e3a5f, #0a1628); border-color: #ff6b35;">
+                    🔊 LISTEN
+                </button>
+                <audio id="radio-audio" style="display: none;"></audio>
+            </div>
+
             <div class="knob-section" style="flex-grow:1;">
                 <label>Gain</label>
                 <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" class="slider"
@@ -515,6 +524,30 @@
                         document.getElementById('rds-pty').innerText = '';
                         htmx.trigger('#messages-log', 'htmx:load');
                     });
+            }
+        }
+
+        let isListening = false;
+        function toggleListen() {
+            const btn = document.getElementById('listen-btn');
+            const audio = document.getElementById('radio-audio');
+            const freq = document.getElementById('freq-input').value || 88.5;
+
+            if (isListening) {
+                // Stop listening
+                audio.pause();
+                audio.src = '';
+                fetch('/api/audio/stop', { method: 'POST' });
+                btn.innerHTML = '🔊 LISTEN';
+                btn.style.borderColor = '#ff6b35';
+                isListening = false;
+            } else {
+                // Start listening
+                audio.src = `/api/audio/stream?freq=${freq}&t=${Date.now()}`;
+                audio.play().catch(e => console.log('Audio play error:', e));
+                btn.innerHTML = '🔇 STOP';
+                btn.style.borderColor = '#0f0';
+                isListening = true;
             }
         }
     </script>

@@ -28,6 +28,8 @@ RUN apt-get update && apt-get install -y \
     libsndfile1 \
     libliquid1 \
     libjansson4 \
+    sox \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Redsea binary from builder
