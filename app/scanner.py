@@ -58,6 +58,8 @@ class Scanner:
 
     def tune(self, frequency, gain=None):
         logging.info(f"Tuning to {frequency} MHz")
+        # Manual tune always stops auto-search
+        self.searching = False
         self.stop()
         self.current_frequency = float(frequency)
         if gain is not None:
@@ -138,15 +140,19 @@ class Scanner:
             if os.path.exists('scan.csv'):
                 os.remove('scan.csv')
 
-    def start_auto_search(self):
+    def start_auto_search(self, force=False):
         """Starts the intelligent search process in a background thread."""
-        if self.searching:
+        if self.searching and not force:
             logging.info("Search already in progress, skipping request.")
             return
+        
+        # Reset state for fresh start
+        self.searching = False
             
         def _search_thread():
             logging.info("Intelligent auto-search starting...")
             self.searching = True
+            self.search_start_time = time.time()
             self.scan_next()
 
         threading.Thread(target=_search_thread, daemon=True).start()
