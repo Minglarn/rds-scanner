@@ -45,11 +45,20 @@ def index():
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
+    # Get current station RDS info if available
+    current_rds = None
+    stations = get_grouped_stations(50)
+    for s in stations:
+        if abs(float(s.get('frequency', 0)) - scanner_instance.current_frequency) < 0.05:
+            current_rds = s
+            break
+    
     return jsonify({
         'frequency': scanner_instance.current_frequency,
         'gain': scanner_instance.current_gain,
         'running': scanner_instance.running,
-        'searching': scanner_instance.searching
+        'searching': scanner_instance.searching,
+        'current_station': current_rds
     })
 
 @app.route('/api/tune', methods=['POST'])

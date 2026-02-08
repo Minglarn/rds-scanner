@@ -406,9 +406,18 @@
                         ledLock.className = 'led-pill';
                     } else {
                         ledScan.className = 'led-pill';
-                        // If we have messages, we might be locked. 
-                        // For now we check if running and not searching as a proxy for "Locked on station"
                         ledLock.className = data.running ? 'led-pill active-lock' : 'led-pill';
+                    }
+
+                    // Update RDS panel with current station info
+                    if (data.current_station) {
+                        const s = data.current_station;
+                        document.getElementById('rds-ps').innerText = s.ps || '---';
+                        document.getElementById('rds-pty').innerText = s.pty || '';
+                        document.getElementById('rds-rt').innerText = s.rt || 'Awaiting RDS data...';
+                        document.getElementById('flag-tmc').className = s.tmc ? 'flag-led on' : 'flag-led';
+                        document.getElementById('flag-ta').className = s.ta ? 'flag-led on' : 'flag-led';
+                        document.getElementById('flag-tp').className = s.tp ? 'flag-led on' : 'flag-led';
                     }
 
                     if (data.searching) {
