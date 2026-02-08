@@ -68,19 +68,19 @@ class Scanner:
     def scan_band(self):
         logging.info("Starting wideband scan...")
         self.stop() # CRITICAL: Stop rtl_fm so rtl_power can use the device
-        time.sleep(1.5) 
+        time.sleep(2.0) # Give device time to settle
         settings = get_settings()
         integration = settings.get('scan_integration', '0.2')
         device = settings.get('device_index', '0')
         
         cmd = ['rtl_power', '-d', device, '-f', '87.5M:108M:100k', '-i', integration]
-        
         if self.current_gain != 'auto':
             cmd.extend(['-g', str(self.current_gain)])
             
         cmd.extend(['-1', 'scan.csv'])
         try:
-            subprocess.run(cmd, check=True, timeout=20)
+            # Increase timeout to 30s to be safe
+            subprocess.run(cmd, check=True, timeout=30)
             peaks = []
             if os.path.exists('scan.csv'):
                 with open('scan.csv', 'r') as f:
@@ -93,11 +93,10 @@ class Scanner:
                         for i, db in enumerate(db_values):
                             freq = start_freq + (i * step)
                             freq_mhz = round(freq / 1000000, 1)
-                            # Simple threshold to avoid picking up noise as stations
-                            # db often ranges -20 to -60 depending on gain
-                            if 87.5 <= freq_mhz <= 108.0 and db > -40:
+                            # Threshold lowered to -55 dB for better sensitivity
+                            if 87.5 <= freq_mhz <= 108.0 and db > -55:
                                  peaks.append(freq_mhz)
-            # Remove duplicates and sort
+            
             unique_peaks = sorted(list(set(peaks)))
             logging.info(f"Band scan complete. Found {len(unique_peaks)} potential stations.")
             return unique_peaks
@@ -109,26 +108,35 @@ class Scanner:
                 os.remove('scan.csv')
 
     def start_auto_search(self):
-        """Starts the intelligent search process."""
-        logging.info("Intelligent auto-search triggered.")
-        self.searching = True
-        self.scan_next()
+        """Starts the intelligent search process in a background thread."""
+        if self.searching:
+            logging.info("Search already in progress, skipping request.")
+            return
+            
+        def _search_thread():
+            logging.info("Intelligent auto-search starting...")
+            self.searching = True
+            self.scan_next()
+
+        threading.Thread(target=_search_thread, daemon=True).start()
 
     def scan_next(self):
         # Use cache if available
         if not self.peak_cache:
-            logging.info("Scanning entire band for initial peaks...")
+            logging.info("Peak cache empty. Scanning entire band...")
             self.peak_cache = self.scan_band()
         
         if not self.peak_cache:
-            logging.warning("No peaks found after scan.")
+            logging.warning("No peaks found after scan. Aborting search.")
             self.searching = False
+            # Restart normal monitoring loop on current freq
+            self.start()
             return self.current_frequency
 
         # Find next frequency in cache
         next_freq = None
         for f in self.peak_cache:
-            if f > self.current_frequency + 0.05:
+            if f > self.current_frequency + 0.15: 
                 next_freq = f
                 break
         
@@ -136,7 +144,7 @@ class Scanner:
             logging.info("End of band reached, wrapping to start of cache.")
             next_freq = self.peak_cache[0]
         
-        logging.info(f"Stepping to: {next_freq} MHz (Cached)")
+        logging.info(f"Next Station: {next_freq} MHz (from {len(self.peak_cache)} peaks)")
         self.search_start_time = time.time()
         self.tune(next_freq)
         return next_freq
