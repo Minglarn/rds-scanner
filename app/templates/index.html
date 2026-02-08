@@ -64,12 +64,18 @@
             background: var(--lcd-bg);
             border-radius: 8px;
             padding: 25px;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            align-items: center;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
             border: 1px solid #111;
             box-shadow: inset 0 0 30px rgba(0, 210, 255, 0.05);
             position: relative;
+        }
+
+        .lcd-main-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .freq-readout {
@@ -248,6 +254,63 @@
             text-align: center;
             margin-bottom: 20px;
         }
+
+        /* RDS Info Panel */
+        .rds-info-panel {
+            background: #050608;
+            border-radius: 4px;
+            padding: 15px;
+            border-top: 1px solid #1a1e26;
+        }
+
+        .rds-ps {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8em;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .rds-pty {
+            font-size: 0.7em;
+            color: #64748b;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .rds-rt {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            color: var(--lcd-green);
+            line-height: 1.5;
+            min-height: 40px;
+        }
+
+        .rds-flags {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .flag-led {
+            font-family: 'JetBrains Mono';
+            font-size: 0.65em;
+            font-weight: 900;
+            color: #222;
+            padding: 2px 8px;
+            border: 1px solid #222;
+            border-radius: 2px;
+        }
+
+        .flag-led.on {
+            color: #fff;
+            background: #0369a1;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 5px rgba(14, 165, 233, 0.5);
+        }
     </style>
 </head>
 
@@ -260,11 +323,24 @@
 
         <!-- Master Display -->
         <div class="master-lcd">
-            <div class="freq-readout" id="lcd-freq">00.0<span class="freq-unit">MHz</span></div>
-            <div class="status-indicators">
-                <div class="led-pill" id="led-pwr">POWER</div>
-                <div class="led-pill" id="led-scan">SCANNING</div>
-                <div class="led-pill" id="led-lock">LOCKED</div>
+            <div class="lcd-main-row">
+                <div class="freq-readout" id="lcd-freq">00.0<span class="freq-unit">MHz</span></div>
+                <div class="status-indicators">
+                    <div class="led-pill" id="led-pwr">POWER</div>
+                    <div class="led-pill" id="led-scan">SCANNING</div>
+                    <div class="led-pill" id="led-lock">LOCKED</div>
+                </div>
+            </div>
+            <!-- RDS Info Panel -->
+            <div class="rds-info-panel" id="rds-panel">
+                <div class="rds-ps" id="rds-ps">---</div>
+                <div class="rds-pty" id="rds-pty"></div>
+                <div class="rds-rt" id="rds-rt">Select a station card to view details...</div>
+                <div class="rds-flags">
+                    <span class="flag-led" id="flag-tmc">TMC</span>
+                    <span class="flag-led" id="flag-ta">TA</span>
+                    <span class="flag-led" id="flag-tp">TP</span>
+                </div>
             </div>
         </div>
 
@@ -273,10 +349,10 @@
             <div class="knob-section">
                 <label>Manual Tune</label>
                 <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="00.0">
-                <button class="btn-radio blue" onclick="tune()">SET</button>
+                <button type="button" class="btn-radio blue" onclick="tune()">SET</button>
             </div>
 
-            <button class="btn-radio green" onclick="scanNext()">SEARCH BAND</button>
+            <button type="button" class="btn-radio green" onclick="scanNext()">SEARCH BAND</button>
 
             <div class="knob-section" style="flex-grow:1;">
                 <label>Gain</label>
@@ -286,7 +362,7 @@
                 <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
                     <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
                 </label>
-                <button class="btn-radio" onclick="setGain()">APPLY</button>
+                <button type="button" class="btn-radio" onclick="setGain()">APPLY</button>
             </div>
         </div>
     </div>
@@ -347,8 +423,19 @@
         statusInterval = setInterval(updateStatus, 3000);
         updateStatus();
 
-        function tuneFreq(freq) {
+        function tuneFreq(freq, ps, rt, pty, tmc, ta, tp) {
             document.getElementById('freq-input').value = freq;
+
+            // Populate RDS panel
+            document.getElementById('rds-ps').innerText = ps || '---';
+            document.getElementById('rds-pty').innerText = pty || '';
+            document.getElementById('rds-rt').innerText = rt || 'No radio text available';
+
+            // Update flags
+            document.getElementById('flag-tmc').className = tmc ? 'flag-led on' : 'flag-led';
+            document.getElementById('flag-ta').className = ta ? 'flag-led on' : 'flag-led';
+            document.getElementById('flag-tp').className = tp ? 'flag-led on' : 'flag-led';
+
             tune();
         }
 
@@ -364,7 +451,23 @@
         }
 
         function scanNext() {
-            fetch('/api/scan/next', { method: 'POST' }).then(updateStatus);
+            console.log("Searching band...");
+            // Visual feedback
+            const btn = document.querySelector('.btn-radio.green');
+            const originalText = btn.innerText;
+            btn.innerText = "INITIATING...";
+
+            fetch('/api/scan/next', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    console.log("Search started:", data);
+                    updateStatus();
+                    setTimeout(() => btn.innerText = originalText, 2000);
+                })
+                .catch(err => {
+                    alert("Error starting search: " + err);
+                    btn.innerText = "ERROR";
+                });
         }
     </script>
 </body>
