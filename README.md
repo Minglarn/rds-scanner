@@ -44,7 +44,7 @@ A Dockerized application for monitoring FM radio signals, decoding RDS/RBDS data
     *Note: The container needs access to the USB device. The `docker-compose.yml` is configured to map `/dev/bus/usb`.*
 
 4.  **Access the Web Interface**:
-    Open your browser and navigate to `http://localhost:5000`.
+    Open your browser and navigate to `http://localhost:9000`.
 
 ## API Endpoints
 
