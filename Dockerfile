@@ -36,14 +36,14 @@ RUN mkdir build && cd build && \
 FROM python:3.11-slim-bookworm
 
 # Install runtime dependencies (FM + DAB)
-RUN apt-get update && apt-get install -y \
+# Note: libfaad2 may require non-free repo on some systems
+RUN apt-get update && apt-get install -y --no-install-recommends \
     rtl-sdr \
     librtlsdr0 \
     libsndfile1 \
-    libliquid1 \
+    libliquid2 \
     libjansson4 \
-    libfftw3-3 \
-    libfaad2 \
+    libfftw3-single3 \
     libmpg123-0 \
     sox \
     ffmpeg \
