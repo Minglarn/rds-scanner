@@ -18,14 +18,16 @@ class Scanner:
         self.thread = None
         self.stop_event = threading.Event()
         self.lock = threading.Lock()
+        
+        # Search state
+        self.searching = False
+        self.last_rds_time = 0
+        self.search_start_time = 0
 
     def _build_command(self):
-        # Base rtl_fm command
         cmd_rtl = ['rtl_fm', '-f', f'{self.current_frequency}M', '-M', 'fm', '-s', '171k', '-A', 'fast', '-r', '171k', '-l', '0', '-E', 'deemp']
-        
         if self.current_gain != 'auto':
             cmd_rtl.extend(['-g', str(self.current_gain)])
-            
         return cmd_rtl
 
     def start(self):
@@ -33,7 +35,6 @@ class Scanner:
             if self.running:
                 logging.warning("Scanner already running.")
                 return
-
             self.stop_event.clear()
             self.running = True
             self.thread = threading.Thread(target=self._run_loop, daemon=True)
@@ -45,10 +46,9 @@ class Scanner:
             self.stop_event.set()
             if self.process:
                 try:
-                    self.process.terminate()
-                    # self.process.wait(timeout=1) # Don't block here
-                except Exception as e:
-                    logging.error(f"Error stopping process: {e}")
+                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                except:
+                    pass
             self.running = False
             logging.info("Scanner stopped")
 
@@ -58,59 +58,36 @@ class Scanner:
         self.current_frequency = float(frequency)
         if gain is not None:
             self.current_gain = gain
-        time.sleep(0.5) # Give it a moment to release device
+        time.sleep(0.5) 
         self.start()
 
     def scan_band(self):
-        """
-        Perform a wideband scan using rtl_power to find strong signals.
-        Returns a sorted list of (frequency, db) tuples.
-        """
         logging.info("Starting wideband scan...")
         self.stop()
-        time.sleep(1) # Ensure device is released
-        
-        # Scan 87.5M to 108M with 100k bins. 
-        # -i 1s (integration interval). -1 (single shot)
-        # Output to stdout (or temp file). stdout is -
-        
+        time.sleep(1) 
         settings = get_settings()
         integration = settings.get('scan_integration', '0.2')
-        
         cmd = ['rtl_power', '-f', '87.5M:108M:100k', '-i', integration, '-g', '50', '-1', 'scan.csv']
-        
         try:
             subprocess.run(cmd, check=True, timeout=15)
-            
             peaks = []
-            with open('scan.csv', 'r') as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    # rtl_power csv format:
-                    # date, time, Hz low, Hz high, Hz step, samples, dB, dB, dB...
-                    # We need to map dB values to frequencies.
-                    if len(row) < 7: continue
-                    
-                    start_freq = float(row[2])
-                    step = float(row[4])
-                    db_values = [float(x) for x in row[6:]]
-                    
-                    for i, db in enumerate(db_values):
-                        freq = start_freq + (i * step)
-                        freq_mhz = round(freq / 1000000, 1)
-                        if freq_mhz >= 87.5 and freq_mhz <= 108.0:
-                             peaks.append((freq_mhz, db))
-            
-            # Simple peak detection:
-            # 1. Filter out noise (e.g. < -10 dB? dynamic?)
-            # Let's take the top 20 strongest signals
+            if os.path.exists('scan.csv'):
+                with open('scan.csv', 'r') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if len(row) < 7: continue
+                        start_freq = float(row[2])
+                        step = float(row[4])
+                        db_values = [float(x) for x in row[6:]]
+                        for i, db in enumerate(db_values):
+                            freq = start_freq + (i * step)
+                            freq_mhz = round(freq / 1000000, 1)
+                            if 87.5 <= freq_mhz <= 108.0:
+                                 peaks.append((freq_mhz, db))
             peaks.sort(key=lambda x: x[1], reverse=True)
-            strongest = peaks[:30]
-            strongest.sort(key=lambda x: x[0]) # Sort by frequency
-            
-            logging.info(f"Scan complete. Found {len(strongest)} peaks.")
+            strongest = peaks[:40] # Analyze top 40 peaks
+            strongest.sort(key=lambda x: x[0]) 
             return strongest
-
         except Exception as e:
             logging.error(f"Error during band scan: {e}")
             return []
@@ -118,59 +95,48 @@ class Scanner:
             if os.path.exists('scan.csv'):
                 os.remove('scan.csv')
 
-    def scan_next(self):
-        """
-        Finds the next strong signal after the current frequency.
-        If no peaks are cached or valid, falls back to incrementing.
-        """
-        # For now, we do a fresh scan every time? Or cache?
-        # A fresh scan takes ~2-5s.
-        # User wants "Scan Next".
-        
-        peaks = self.scan_band()
-        
-        if not peaks:
-            logging.warning("No peaks found, falling back to simple step.")
-            settings = get_settings()
-            step_size = float(settings.get('scan_step', '0.1'))
-            new_freq = round(self.current_frequency + step_size, 1)
-            if new_freq > 108.0: new_freq = 87.5
-            self.tune(new_freq)
-            return new_freq
+    def start_auto_search(self):
+        """Starts the intelligent search process."""
+        logging.info("Intelligent auto-search triggered.")
+        self.searching = True
+        self.scan_next()
 
-        # Find next freq in peaks > current_frequency
+    def scan_next(self):
+        peaks = self.scan_band()
+        if not peaks:
+            self.searching = False
+            return self.current_frequency
+
         next_freq = None
         for f, db in peaks:
-            if f > self.current_frequency + 0.05: # Small buffer
+            if f > self.current_frequency + 0.05:
                 next_freq = f
                 break
         
         if next_freq is None:
-            # Wrap around to first peak
-            if peaks:
-                next_freq = peaks[0][0]
-            else:
-                next_freq = 87.5
+            next_freq = peaks[0][0]
         
-        logging.info(f"Auto-scan found next peak: {next_freq} MHz")
+        logging.info(f"Trying frequency: {next_freq} MHz")
+        self.search_start_time = time.time()
         self.tune(next_freq)
         return next_freq
 
     def _run_loop(self):
-        rtl_cmd = self._build_command()
-        
         gain_flag = f"-g {self.current_gain}" if self.current_gain != 'auto' else ""
         full_cmd = f"rtl_fm -f {self.current_frequency}M -M fm -s 171k -A fast -r 171k -l 0 -E deemp {gain_flag} | redsea -u"
         
-        logging.info(f"Running command: {full_cmd}")
-        
         try:
-            # shell=True required for pipe
-            # setsid to create a new session group, easier to kill
             self.process = subprocess.Popen(full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid) 
             
-            # Read stdout line by line
             while not self.stop_event.is_set():
+                # Check search timeout (if no RDS within 4 seconds, skip to next)
+                if self.searching:
+                    elapsed = time.time() - self.search_start_time
+                    if elapsed > 4.0: # 4 second timeout for RDS lock
+                        logging.info(f"No RDS lock on {self.current_frequency} MHz after {round(elapsed, 1)}s. Skipping...")
+                        threading.Thread(target=self.scan_next, daemon=True).start()
+                        break 
+
                 line = self.process.stdout.readline()
                 if not line:
                     if self.process.poll() is not None:
@@ -179,18 +145,18 @@ class Scanner:
                 
                 try:
                     data = json.loads(line)
-                    # Enrich with frequency if not present (redsea usually adds it if known? No, rtl_fm doesn't tell redsea freq)
-                    # We add our current frequency
                     data['frequency'] = self.current_frequency
                     
-                    # Save to DB
+                    # If we receive ANY valid RDS data (like pi or ps), we found a station!
+                    if self.searching and (data.get('pi') or data.get('ps') or data.get('rt')):
+                        logging.info(f"RDS Locked on {self.current_frequency} MHz! Stopping search.")
+                        self.searching = False 
+
                     save_message(data)
-                    
-                    # Publish to MQTT
                     publish_rds(data)
                     
                 except json.JSONDecodeError:
-                    pass # Ignore partial lines or noise
+                    pass 
                     
         except Exception as e:
             logging.error(f"Error in scanner loop: {e}")
@@ -202,5 +168,4 @@ class Scanner:
                     pass
             self.running = False
 
-# Global instance
 scanner_instance = Scanner()

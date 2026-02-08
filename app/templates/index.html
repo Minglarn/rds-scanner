@@ -162,7 +162,12 @@
                     document.getElementById('status-gain').textContent = data.gain;
 
                     const scanStatus = document.getElementById('scan-status');
-                    scanStatus.style.display = data.scanning ? 'inline' : 'none';
+                    if (data.searching) {
+                        scanStatus.innerText = "Scanning for RDS...";
+                        scanStatus.style.display = 'inline';
+                    } else {
+                        scanStatus.style.display = 'none';
+                    }
 
                     // Set initial values if inputs are empty/default
                     if (!document.getElementById('freq-input').value) {

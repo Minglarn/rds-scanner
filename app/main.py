@@ -31,7 +31,8 @@ def get_status():
     return jsonify({
         'frequency': scanner_instance.current_frequency,
         'gain': scanner_instance.current_gain,
-        'running': scanner_instance.running
+        'running': scanner_instance.running,
+        'searching': scanner_instance.searching
     })
 
 @app.route('/api/tune', methods=['POST'])
@@ -40,6 +41,8 @@ def tune():
     try:
         freq = float(data.get('frequency', scanner_instance.current_frequency))
         gain = data.get('gain', scanner_instance.current_gain)
+        # Manual tune stops auto-search
+        scanner_instance.searching = False
         scanner_instance.tune(freq, gain)
         return jsonify({'status': 'ok', 'frequency': freq, 'gain': gain})
     except ValueError:
@@ -48,8 +51,8 @@ def tune():
 @app.route('/api/scan/next', methods=['POST'])
 def scan_next():
     try:
-        new_freq = scanner_instance.scan_next()
-        return jsonify({'status': 'ok', 'frequency': new_freq})
+        scanner_instance.start_auto_search()
+        return jsonify({'status': 'searching'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
