@@ -6,6 +6,10 @@ from app.scanner import scanner_instance
 from app.database import init_db, get_recent_messages, get_grouped_stations, get_db_connection, get_settings, update_setting, clear_all_messages
 from app.mqtt_client import init_mqtt
 from app.audio_stream import get_audio_stream, audio_streamer
+from app.dab_scanner import dab_scanner, DAB_CHANNELS
+
+# Current radio mode: 'fm' or 'dab'
+current_mode = 'fm'
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -141,6 +145,80 @@ def audio_stop():
     """Stop the audio stream."""
     audio_streamer.stop()
     return jsonify({'status': 'stopped'})
+
+# ========== DAB ROUTES ==========
+
+@app.route('/api/mode', methods=['GET'])
+def get_mode():
+    """Get current radio mode (fm or dab)."""
+    global current_mode
+    return jsonify({'mode': current_mode})
+
+@app.route('/api/mode', methods=['POST'])
+def set_mode():
+    """Switch between FM and DAB mode."""
+    global current_mode
+    data = request.json
+    new_mode = data.get('mode', 'fm').lower()
+    
+    if new_mode not in ['fm', 'dab']:
+        return jsonify({'error': 'Invalid mode. Use fm or dab'}), 400
+    
+    if new_mode == current_mode:
+        return jsonify({'mode': current_mode, 'message': 'Already in this mode'})
+    
+    # Switch modes - only one can use RTL-SDR at a time
+    if new_mode == 'dab':
+        scanner_instance.stop()
+        audio_streamer.stop()
+        dab_scanner.start()
+    else:
+        dab_scanner.stop()
+        scanner_instance.start()
+    
+    current_mode = new_mode
+    return jsonify({'mode': current_mode, 'message': f'Switched to {new_mode.upper()} mode'})
+
+@app.route('/api/dab/status', methods=['GET'])
+def dab_status():
+    """Get DAB receiver status."""
+    return jsonify(dab_scanner.get_status())
+
+@app.route('/api/dab/channels', methods=['GET'])
+def dab_channels():
+    """Get list of available DAB channels."""
+    return jsonify({'channels': list(DAB_CHANNELS.keys())})
+
+@app.route('/api/dab/tune', methods=['POST'])
+def dab_tune():
+    """Tune to a DAB channel or service."""
+    data = request.json
+    channel = data.get('channel')
+    service = data.get('service')
+    
+    if channel:
+        success = dab_scanner.tune_channel(channel)
+        if success:
+            return jsonify({'status': 'ok', 'channel': channel})
+        else:
+            return jsonify({'error': f'Failed to tune to {channel}'}), 500
+    
+    if service:
+        success = dab_scanner.tune_service(service)
+        if success:
+            return jsonify({'status': 'ok', 'service': service})
+        else:
+            return jsonify({'error': f'Failed to tune to service {service}'}), 500
+    
+    return jsonify({'error': 'Specify channel or service'}), 400
+
+@app.route('/api/dab/audio')
+def dab_audio():
+    """Proxy DAB audio stream from welle-cli."""
+    audio_url = dab_scanner.get_audio_url()
+    if audio_url:
+        return redirect(audio_url)
+    return jsonify({'error': 'DAB not running'}), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False) # Debug mode False for production use

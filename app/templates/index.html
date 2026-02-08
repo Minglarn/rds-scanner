@@ -317,7 +317,23 @@
     <div class="radio-unit">
         <div class="unit-header">
             <div class="brand-logo">RDS // TACTICAL-SERIES</div>
-            <a href="/settings" class="config-btn">SYSTEM SETTINGS</a>
+            <!-- FM/DAB Mode Toggle -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div
+                    style="display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(0,0,0,0.3); border-radius: 4px; border: 1px solid #333;">
+                    <span id="mode-fm-label" style="font-size: 0.7em; font-weight: bold; color: #0ff;">FM</span>
+                    <label style="position: relative; display: inline-block; width: 50px; height: 24px; margin: 0;">
+                        <input type="checkbox" id="mode-toggle" onchange="toggleRadioMode()"
+                            style="opacity: 0; width: 0; height: 0;">
+                        <span
+                            style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #1e3a5f; border-radius: 12px; transition: .3s;"></span>
+                        <span id="mode-slider"
+                            style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: #0ff; border-radius: 50%; transition: .3s;"></span>
+                    </label>
+                    <span id="mode-dab-label" style="font-size: 0.7em; font-weight: bold; color: #666;">DAB+</span>
+                </div>
+                <a href="/settings" class="config-btn">SYSTEM SETTINGS</a>
+            </div>
         </div>
 
         <!-- Master Display -->
@@ -325,6 +341,7 @@
             <div class="lcd-main-row">
                 <div class="freq-readout" id="lcd-freq">00.0<span class="freq-unit">MHz</span></div>
                 <div class="status-indicators">
+                    <div class="led-pill" id="led-mode">FM</div>
                     <div class="led-pill" id="led-pwr">POWER</div>
                     <div class="led-pill" id="led-scan">SCANNING</div>
                     <div class="led-pill" id="led-lock">LOCKED</div>
@@ -343,8 +360,8 @@
             </div>
         </div>
 
-        <!-- Controls Row -->
-        <div class="controls-row">
+        <!-- FM Controls (hidden when in DAB mode) -->
+        <div class="controls-row" id="fm-controls">
             <div class="knob-section">
                 <label>Manual Tune</label>
                 <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="00.0">
@@ -371,6 +388,43 @@
                     <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
                 </label>
                 <button type="button" class="btn-radio" onclick="setGain()">APPLY</button>
+            </div>
+        </div>
+
+        <!-- DAB Controls (hidden when in FM mode) -->
+        <div class="controls-row" id="dab-controls" style="display: none;">
+            <div class="knob-section">
+                <label>DAB Channel</label>
+                <select id="dab-channel"
+                    style="font-size: 1em; padding: 8px; background: #0a1628; color: #0ff; border: 1px solid #0ff; border-radius: 4px;">
+                    <option value="5A">5A (174.928 MHz)</option>
+                    <option value="5B">5B (176.640 MHz)</option>
+                    <option value="5C">5C (178.352 MHz)</option>
+                    <option value="5D">5D (180.064 MHz)</option>
+                    <option value="7D">7D (194.064 MHz)</option>
+                    <option value="11C">11C (220.352 MHz)</option>
+                    <option value="12A">12A (223.936 MHz)</option>
+                    <option value="12B" selected>12B - SR DAB (225.648 MHz)</option>
+                    <option value="12C">12C (227.360 MHz)</option>
+                    <option value="12D">12D (229.072 MHz)</option>
+                </select>
+                <button type="button" class="btn-radio blue" onclick="tuneDAB()">TUNE</button>
+            </div>
+
+            <div class="knob-section" style="flex-grow: 1;">
+                <label>Services</label>
+                <select id="dab-service"
+                    style="font-size: 1em; padding: 8px; background: #0a1628; color: #0ff; border: 1px solid #0ff; border-radius: 4px; min-width: 200px;">
+                    <option value="">Select channel first...</option>
+                </select>
+                <button type="button" class="btn-radio green" onclick="tuneDABService()">PLAY</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" id="dab-listen-btn" class="btn-radio" onclick="toggleDABListen()"
+                    style="background: linear-gradient(135deg, #1e3a5f, #0a1628); border-color: #ff6b35;">
+                    🔊 LISTEN DAB
+                </button>
             </div>
         </div>
     </div>
@@ -548,6 +602,126 @@
                 btn.innerHTML = '🔇 STOP';
                 btn.style.borderColor = '#0f0';
                 isListening = true;
+            }
+        }
+
+        // ========== DAB FUNCTIONS ==========
+
+        let currentMode = 'fm';
+        let dabListening = false;
+
+        function toggleRadioMode() {
+            const checkbox = document.getElementById('mode-toggle');
+            const newMode = checkbox.checked ? 'dab' : 'fm';
+
+            // Update UI labels
+            document.getElementById('mode-fm-label').style.color = newMode === 'fm' ? '#0ff' : '#666';
+            document.getElementById('mode-dab-label').style.color = newMode === 'dab' ? '#0ff' : '#666';
+            document.getElementById('mode-slider').style.left = newMode === 'dab' ? '29px' : '3px';
+            document.getElementById('led-mode').innerText = newMode.toUpperCase();
+            document.getElementById('led-mode').className = newMode === 'dab' ? 'led-pill active-pwr' : 'led-pill';
+
+            // Show/hide control panels
+            document.getElementById('fm-controls').style.display = newMode === 'fm' ? 'flex' : 'none';
+            document.getElementById('dab-controls').style.display = newMode === 'dab' ? 'flex' : 'none';
+
+            // Stop any audio
+            if (isListening) toggleListen();
+            if (dabListening) toggleDABListen();
+
+            // Call API to switch mode
+            fetch('/api/mode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: newMode })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    currentMode = newMode;
+                    console.log('Mode switched:', data);
+                    if (newMode === 'dab') {
+                        // Start polling DAB status
+                        setTimeout(updateDABStatus, 2000);
+                    }
+                });
+        }
+
+        function tuneDAB() {
+            const channel = document.getElementById('dab-channel').value;
+            document.getElementById('rds-ps').innerText = 'TUNING...';
+            document.getElementById('rds-rt').innerText = `Tuning to DAB channel ${channel}...`;
+
+            fetch('/api/dab/tune', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channel: channel })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    console.log('DAB tune:', data);
+                    setTimeout(updateDABStatus, 2000);
+                });
+        }
+
+        function tuneDABService() {
+            const service = document.getElementById('dab-service').value;
+            if (!service) return;
+
+            fetch('/api/dab/tune', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ service: service })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    console.log('DAB service:', data);
+                    document.getElementById('rds-ps').innerText = service;
+                });
+        }
+
+        function updateDABStatus() {
+            if (currentMode !== 'dab') return;
+
+            fetch('/api/dab/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.running) {
+                        document.getElementById('lcd-freq').innerHTML = `${data.channel}<span class="freq-unit">DAB</span>`;
+                        document.getElementById('led-lock').className = 'led-pill active-lock';
+
+                        // Update service dropdown
+                        const serviceSelect = document.getElementById('dab-service');
+                        if (data.services && data.services.length > 0) {
+                            serviceSelect.innerHTML = data.services.map(s =>
+                                `<option value="${s.id || s.name}">${s.name || s}</option>`
+                            ).join('');
+                            document.getElementById('rds-ps').innerText = 'DAB+ READY';
+                            document.getElementById('rds-rt').innerText = `${data.services.length} services found on ${data.channel}`;
+                        } else {
+                            document.getElementById('rds-rt').innerText = 'Searching for services...';
+                        }
+                    }
+                    // Keep polling
+                    setTimeout(updateDABStatus, 3000);
+                });
+        }
+
+        function toggleDABListen() {
+            const btn = document.getElementById('dab-listen-btn');
+            const audio = document.getElementById('radio-audio');
+
+            if (dabListening) {
+                audio.pause();
+                audio.src = '';
+                btn.innerHTML = '🔊 LISTEN DAB';
+                btn.style.borderColor = '#ff6b35';
+                dabListening = false;
+            } else {
+                audio.src = `/api/dab/audio?t=${Date.now()}`;
+                audio.play().catch(e => console.log('DAB audio error:', e));
+                btn.innerHTML = '🔇 STOP';
+                btn.style.borderColor = '#0f0';
+                dabListening = true;
             }
         }
     </script>
