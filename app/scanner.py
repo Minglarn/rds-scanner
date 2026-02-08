@@ -67,7 +67,8 @@ class Scanner:
 
     def scan_band(self):
         logging.info("Starting wideband scan...")
-        time.sleep(1) 
+        self.stop() # CRITICAL: Stop rtl_fm so rtl_power can use the device
+        time.sleep(1.5) 
         settings = get_settings()
         integration = settings.get('scan_integration', '0.2')
         device = settings.get('device_index', '0')
@@ -79,7 +80,7 @@ class Scanner:
             
         cmd.extend(['-1', 'scan.csv'])
         try:
-            subprocess.run(cmd, check=True, timeout=15)
+            subprocess.run(cmd, check=True, timeout=20)
             peaks = []
             if os.path.exists('scan.csv'):
                 with open('scan.csv', 'r') as f:
@@ -92,10 +93,13 @@ class Scanner:
                         for i, db in enumerate(db_values):
                             freq = start_freq + (i * step)
                             freq_mhz = round(freq / 1000000, 1)
-                            if 87.5 <= freq_mhz <= 108.0:
+                            # Simple threshold to avoid picking up noise as stations
+                            # db often ranges -20 to -60 depending on gain
+                            if 87.5 <= freq_mhz <= 108.0 and db > -40:
                                  peaks.append(freq_mhz)
             # Remove duplicates and sort
             unique_peaks = sorted(list(set(peaks)))
+            logging.info(f"Band scan complete. Found {len(unique_peaks)} potential stations.")
             return unique_peaks
         except Exception as e:
             logging.error(f"Error during band scan: {e}")
