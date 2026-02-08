@@ -392,50 +392,53 @@
         </div>
 
         <!-- DAB Controls (hidden when in FM mode) -->
-        <div class="controls-row" id="dab-controls" style="display: none;">
+        <div class="controls-row" id="dab-controls"
+            style="display: none; flex-wrap: wrap; justify-content: space-between;">
             <div class="knob-section">
-                <label>DAB Channel</label>
+                <label>Channel</label>
                 <select id="dab-channel"
-                    style="font-size: 1em; padding: 8px; background: #0a1628; color: #0ff; border: 1px solid #0ff; border-radius: 4px;">
-                    <option value="5A">5A (174.928 MHz)</option>
-                    <option value="5B">5B (176.640 MHz)</option>
-                    <option value="5C">5C (178.352 MHz)</option>
-                    <option value="5D">5D (180.064 MHz)</option>
-                    <option value="7D">7D (194.064 MHz)</option>
-                    <option value="11C">11C (220.352 MHz)</option>
-                    <option value="12A">12A (223.936 MHz)</option>
-                    <option value="12B" selected>12B - SR DAB (225.648 MHz)</option>
-                    <option value="12C">12C (227.360 MHz)</option>
-                    <option value="12D">12D (229.072 MHz)</option>
+                    style="font-size: 0.9em; padding: 6px; background: #0a1628; color: #0ff; border: 1px solid #0ff; border-radius: 4px; width: 140px;">
+                    <option value="5A">5A (174.928)</option>
+                    <option value="5B">5B (176.640)</option>
+                    <option value="5C">5C (178.352)</option>
+                    <option value="5D">5D (180.064)</option>
+                    <option value="7D">7D (194.064)</option>
+                    <option value="11C">11C (220.352)</option>
+                    <option value="12A">12A (223.936)</option>
+                    <option value="12B" selected>12B - SR</option>
+                    <option value="12C">12C (227.360)</option>
+                    <option value="12D">12D (229.072)</option>
                 </select>
-                <button type="button" class="btn-radio blue" onclick="tuneDAB()">TUNE</button>
-                <button type="button" id="dab-scan-btn" class="btn-radio green" onclick="scanDAB()">SCAN
-                    CHANNELS</button>
+                <button type="button" class="btn-radio blue" onclick="tuneDAB()"
+                    style="padding: 6px 12px;">TUNE</button>
+                <button type="button" id="dab-scan-btn" class="btn-radio green" onclick="scanDAB()"
+                    style="padding: 6px 12px;">SCAN</button>
             </div>
 
-            <div class="knob-section" style="flex-grow: 1;">
-                <label>Services</label>
+            <div class="knob-section" style="flex-grow: 1; min-width: 250px;">
+                <label>Service</label>
                 <select id="dab-service"
-                    style="font-size: 1em; padding: 8px; background: #0a1628; color: #0ff; border: 1px solid #0ff; border-radius: 4px; min-width: 200px;">
+                    style="font-size: 0.9em; padding: 6px; background: #0a1628; color: #0ff; border: 1px solid #0ff; border-radius: 4px; width: 100%;">
                     <option value="">Select channel first...</option>
                 </select>
-                <button type="button" class="btn-radio green" onclick="tuneDABService()">PLAY</button>
+                <button type="button" class="btn-radio green" onclick="tuneDABService()"
+                    style="padding: 6px 12px;">PLAY</button>
             </div>
 
             <div class="knob-section">
                 <label>Gain</label>
                 <input type="range" id="dab-gain-slider" min="0" max="50" step="1" value="0" class="slider"
-                    oninput="document.getElementById('dab-gain-val').innerText = this.value">
+                    style="width: 80px;" oninput="document.getElementById('dab-gain-val').innerText = this.value">
                 <span id="dab-gain-val" style="font-family: monospace; font-size: 0.9em; min-width: 20px;">0</span>
-                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.6em;">
                     <input type="checkbox" id="dab-gain-auto" checked> AUTO
                 </label>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center;">
                 <button type="button" id="dab-listen-btn" class="btn-radio" onclick="toggleDABListen()"
-                    style="background: linear-gradient(135deg, #1e3a5f, #0a1628); border-color: #ff6b35;">
-                    🔊 LISTEN DAB
+                    style="background: linear-gradient(135deg, #1e3a5f, #0a1628); border-color: #ff6b35; padding: 6px 12px;">
+                    🔊 LISTEN
                 </button>
             </div>
         </div>
