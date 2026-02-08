@@ -157,13 +157,12 @@ def register_signal_peaks(frequencies):
         timestamp = datetime.utcnow()
         
         for freq in frequencies:
-            # Check if we already have a recent entry for this freq
-            cursor.execute('SELECT id FROM messages WHERE frequency = ? LIMIT 1', (freq,))
-            if not cursor.fetchone():
-                cursor.execute('''
-                    INSERT INTO messages (timestamp, frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (timestamp, freq, '', '', '', '', 0, 0, 0, '{}'))
+            # Always insert a new record for this frequency so it appears as "Recently Found"
+            # We use empty PI/PS to indicate it's a raw signal detection
+            cursor.execute('''
+                INSERT INTO messages (timestamp, frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (timestamp, freq, '', '', '', '', 0, 0, 0, '{}'))
                 
         conn.commit()
         conn.close()

@@ -347,6 +347,11 @@
         statusInterval = setInterval(updateStatus, 3000);
         updateStatus();
 
+        function tuneFreq(freq) {
+            document.getElementById('freq-input').value = freq;
+            tune();
+        }
+
         function tune() {
             const freq = document.getElementById('freq-input').value;
             fetch('/api/tune', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ frequency: freq }) }).then(updateStatus);

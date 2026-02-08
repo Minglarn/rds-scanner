@@ -1,6 +1,6 @@
 <div class="radio-grid">
     {% for station in stations %}
-    <div class="radio-card">
+    <div class="radio-card" onclick="tuneFreq('{{ station.frequency }}')">
         <!-- Display Bezel -->
         <div class="display-bezel">
             <div class="display-header">
@@ -65,6 +65,7 @@
         display: flex;
         flex-direction: column;
         transition: transform 0.1s;
+        cursor: pointer;
     }
 
     .radio-card:hover {
