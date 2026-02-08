@@ -30,7 +30,7 @@ WORKDIR /build
 RUN git clone https://github.com/AlbrechtL/welle.io.git
 WORKDIR /build/welle.io
 RUN mkdir build && cd build && \
-    cmake .. -DRTLSDR=1 -DBUILD_WELLE_IO=OFF -DBUILD_WELLE_CLI=ON && \
+    cmake .. -DRTLSDR=1 -DBUILD_WELLE_IO=OFF -DBUILD_WELLE_CLI=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && \
     make -j$(nproc) && \
     cp welle-cli /usr/local/bin/
 
