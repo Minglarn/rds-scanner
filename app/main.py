@@ -195,6 +195,7 @@ def dab_tune():
     data = request.json
     channel = data.get('channel')
     service = data.get('service')
+    gain = data.get('gain')
     
     if channel:
         success = dab_scanner.tune_channel(channel)
@@ -202,6 +203,13 @@ def dab_tune():
             return jsonify({'status': 'ok', 'channel': channel})
         else:
             return jsonify({'error': f'Failed to tune to {channel}'}), 500
+            
+    if gain is not None:
+        success = dab_scanner.set_gain(gain)
+        if success:
+            return jsonify({'status': 'ok', 'gain': gain})
+        else:
+            return jsonify({'error': 'Failed to set gain'}), 500
     
     if service:
         success = dab_scanner.tune_service(service)
@@ -210,7 +218,7 @@ def dab_tune():
         else:
             return jsonify({'error': f'Failed to tune to service {service}'}), 500
     
-    return jsonify({'error': 'Specify channel or service'}), 400
+    return jsonify({'error': 'Specify channel, service, or gain'}), 400
 
 @app.route('/api/dab/audio')
 def dab_audio():

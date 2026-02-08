@@ -60,15 +60,18 @@ class DABScanner:
         self.process = None
         self.running = False
         self.current_channel = '12B'  # Default Swedish SR DAB
+        self.current_gain = 'auto'
         self.current_service = None
         self.web_port = 7979
         self.lock = threading.Lock()
         self.services = []
         
-    def start(self, channel=None):
+    def start(self, channel=None, gain=None):
         """Start welle-cli with web server on given channel."""
         if channel:
             self.current_channel = channel
+        if gain is not None:
+            self.current_gain = gain
             
         self.stop()  # Stop any existing process
         
@@ -80,8 +83,16 @@ class DABScanner:
             'welle-cli',
             '-c', self.current_channel,
             '-w', str(self.web_port),
+            'welle-cli',
+            '-c', self.current_channel,
+            '-w', str(self.web_port),
             '-D', device
         ]
+        
+        # Add gain if specified (and not auto)
+        # welle-cli uses -g GAIN
+        if self.current_gain != 'auto':
+            cmd.extend(['-g', str(self.current_gain)])
         
         logging.info(f"Starting DAB on channel {self.current_channel}")
         
@@ -131,6 +142,12 @@ class DABScanner:
         
         self.current_channel = channel
         return self.start(channel)
+        
+    def set_gain(self, gain):
+        """Set tuner gain."""
+        self.current_gain = gain
+        # Restart required to change gain
+        return self.start()
     
     def tune_service(self, service_id):
         """Tune to a specific service within current ensemble."""

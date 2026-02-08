@@ -433,6 +433,7 @@
                 <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.6em;">
                     <input type="checkbox" id="dab-gain-auto" checked> AUTO
                 </label>
+                <button type="button" class="btn-radio" onclick="setDABGain()" style="padding: 6px 12px;">APPLY</button>
             </div>
 
             <div style="display: flex; align-items: center;">
@@ -775,18 +776,36 @@
 
                         // Update service dropdown
                         const serviceSelect = document.getElementById('dab-service');
-                        if (data.services && data.services.length > 0) {
+                        // Only update if services changed to avoid resetting selection
+                        if (data.services && data.services.length > 0 && serviceSelect.options.length <= 1) {
                             serviceSelect.innerHTML = data.services.map(s =>
                                 `<option value="${s.id || s.name}">${s.name || s}</option>`
                             ).join('');
                             document.getElementById('rds-ps').innerText = 'DAB+ READY';
                             document.getElementById('rds-rt').innerText = `${data.services.length} services found on ${data.channel}`;
-                        } else {
+                        } else if (!data.services || data.services.length === 0) {
                             document.getElementById('rds-rt').innerText = 'Searching for services...';
                         }
                     }
                     // Keep polling
                     setTimeout(updateDABStatus, 3000);
+                });
+        }
+
+        function setDABGain() {
+            const isAuto = document.getElementById('dab-gain-auto').checked;
+            const gain = isAuto ? 'auto' : document.getElementById('dab-gain-slider').value;
+
+            fetch('/api/dab/tune', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gain: gain })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    console.log('DAB Gain:', data);
+                    // Restarting DAB takes a moment, show status
+                    document.getElementById('rds-rt').innerText = `Gain set to ${gain}. Restarting...`;
                 });
         }
 
