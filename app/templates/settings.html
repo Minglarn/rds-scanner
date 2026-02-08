@@ -102,6 +102,14 @@
                     <small style="color: #888; font-weight: normal;">Useful if you have multiple dongles (default
                         0)</small>
                 </label>
+                <label>
+                    Squelch Threshold (dB)
+                    <input type="number" step="5" name="squelch_threshold"
+                        value="{{ settings.squelch_threshold or '-40' }}">
+                    <small style="color: #888; font-weight: normal;">Signal strength cutoff for station detection.
+                        Higher = fewer false positives, but might miss weak stations. Range: -60 (sensitive) to -20
+                        (strict). Default: -40</small>
+                </label>
 
                 <h2>MQTT Configuration</h2>
                 <label>

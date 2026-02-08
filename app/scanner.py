@@ -72,6 +72,7 @@ class Scanner:
         settings = get_settings()
         integration = settings.get('scan_integration', '0.2')
         device = settings.get('device_index', '0')
+        squelch = float(settings.get('squelch_threshold', '-40'))
         
         cmd = ['rtl_power', '-d', device, '-f', '87.5M:108M:100k', '-i', integration]
         if self.current_gain != 'auto':
@@ -81,7 +82,10 @@ class Scanner:
         try:
             # Increase timeout to 30s to be safe
             subprocess.run(cmd, check=True, timeout=30)
-            peaks = []
+            
+            # Collect ALL signal data for smart analysis
+            all_signals = []  # List of (freq_mhz, db_value)
+            
             if os.path.exists('scan.csv'):
                 with open('scan.csv', 'r') as f:
                     reader = csv.reader(f)
@@ -93,14 +97,40 @@ class Scanner:
                         for i, db in enumerate(db_values):
                             freq = start_freq + (i * step)
                             freq_mhz = round(freq / 1000000, 1)
-                            # Threshold lowered to -55 dB for better sensitivity
-                            if 87.5 <= freq_mhz <= 108.0 and db > -55:
-                                 peaks.append(freq_mhz)
+                            if 87.5 <= freq_mhz <= 108.0:
+                                all_signals.append((freq_mhz, db))
             
-            unique_peaks = sorted(list(set(peaks)))
-            logging.info(f"Band scan complete. Found {len(unique_peaks)} potential stations.")
+            # Sort by frequency
+            all_signals.sort(key=lambda x: x[0])
             
-            return unique_peaks
+            # Find LOCAL MAXIMA (peaks that are stronger than neighbors)
+            # A real station should be a peak in signal strength
+            peaks = []
+            for i in range(2, len(all_signals) - 2):
+                freq, db = all_signals[i]
+                
+                # Must be above squelch threshold
+                if db < squelch:
+                    continue
+                
+                # Check if this is a local maximum (higher than 2 neighbors on each side)
+                neighbors = [all_signals[i-2][1], all_signals[i-1][1], 
+                            all_signals[i+1][1], all_signals[i+2][1]]
+                
+                if db > max(neighbors):
+                    # This is a true peak - a local maximum above threshold
+                    peaks.append(freq)
+                    logging.debug(f"Peak found: {freq} MHz at {db:.1f} dB")
+            
+            # Deduplicate (merge peaks within 0.15 MHz of each other - sidebands)
+            merged_peaks = []
+            for freq in peaks:
+                if not merged_peaks or freq - merged_peaks[-1] > 0.15:
+                    merged_peaks.append(freq)
+            
+            logging.info(f"Band scan complete. Found {len(merged_peaks)} real stations (squelch: {squelch} dB).")
+            
+            return merged_peaks
         except Exception as e:
             logging.error(f"Error during band scan: {e}")
             return []
