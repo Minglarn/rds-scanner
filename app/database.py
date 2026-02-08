@@ -152,9 +152,29 @@ def get_grouped_stations(limit=50, sort_by='frequency'):
         LIMIT ?
     '''
     cursor.execute(query, (limit,))
+    cursor.execute(query, (limit,))
     rows = cursor.fetchall()
     conn.close()
-    return [dict(row) for row in rows]
+    
+    # Post-process to remove duplicates:
+    # If a frequency has both an entry with PI and an entry without PI, remove the one without PI.
+    results = [dict(row) for row in rows]
+    
+    # Create a look-up of frequencies that have at least one valid PI
+    freqs_with_pi = set()
+    for r in results:
+        if r['pi'] and r['pi'].strip():
+            freqs_with_pi.add(r['frequency'])
+            
+    # Filter out entries that have empty PI if that frequency already has a valid PI entry
+    filtered_results = []
+    for r in results:
+        has_pi = r['pi'] and r['pi'].strip()
+        if not has_pi and r['frequency'] in freqs_with_pi:
+            continue # Skip this "ghost" entry
+        filtered_results.append(r)
+        
+    return filtered_results
 
 def register_signal_peaks(frequencies):
     """

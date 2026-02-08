@@ -428,12 +428,12 @@
             <div class="knob-section">
                 <label>Gain</label>
                 <input type="range" id="dab-gain-slider" min="0" max="50" step="1" value="0" class="slider"
-                    style="width: 80px;" oninput="document.getElementById('dab-gain-val').innerText = this.value">
+                    style="width: 80px;" oninput="document.getElementById('dab-gain-val').innerText = this.value"
+                    onchange="setDABGain()">
                 <span id="dab-gain-val" style="font-family: monospace; font-size: 0.9em; min-width: 20px;">0</span>
                 <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.6em;">
-                    <input type="checkbox" id="dab-gain-auto" checked> AUTO
+                    <input type="checkbox" id="dab-gain-auto" checked onchange="setDABGain()"> AUTO
                 </label>
-                <button type="button" class="btn-radio" onclick="setDABGain()" style="padding: 6px 12px;">APPLY</button>
             </div>
 
             <div style="display: flex; align-items: center;">
