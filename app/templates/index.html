@@ -474,6 +474,8 @@
         let statusInterval = null;
 
         function updateStatus() {
+            if (currentMode !== 'fm') return;
+
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
@@ -652,8 +654,13 @@
                     currentMode = newMode;
                     console.log('Mode switched:', data);
                     if (newMode === 'dab') {
+                        // Stop FM polling
+                        if (statusInterval) clearInterval(statusInterval);
                         // Start polling DAB status
-                        setTimeout(updateDABStatus, 2000);
+                        updateDABStatus();
+                    } else {
+                        // Start FM polling
+                        updateStatus();
                     }
                 });
         }
