@@ -83,9 +83,6 @@ class DABScanner:
             'welle-cli',
             '-c', self.current_channel,
             '-w', str(self.web_port),
-            'welle-cli',
-            '-c', self.current_channel,
-            '-w', str(self.web_port),
             '-D', device
         ]
         
