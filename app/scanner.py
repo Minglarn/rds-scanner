@@ -140,54 +140,111 @@ class Scanner:
             if os.path.exists('scan.csv'):
                 os.remove('scan.csv')
 
-    def start_auto_search(self, force=False):
-        """Starts the intelligent search process in a background thread."""
-        if self.searching and not force:
-            logging.info("Search already in progress, skipping request.")
+    def start_auto_search(self):
+        """Toggle auto-search on/off."""
+        if self.searching:
+            # User wants to STOP the search
+            logging.info("Stopping auto-search by user request.")
+            self.searching = False
             return
         
-        # Reset state for fresh start
-        self.searching = False
-            
-        def _search_thread():
-            logging.info("Intelligent auto-search starting...")
+        # Start fresh search
+        def _full_band_scan():
+            logging.info("=== FULL BAND SCAN STARTING ===")
             self.searching = True
-            self.search_start_time = time.time()
-            self.scan_next()
-
-        threading.Thread(target=_search_thread, daemon=True).start()
-
-    def scan_next(self):
-        # Use cache if available
-        if not self.peak_cache:
-            logging.info("Peak cache empty. Scanning entire band...")
-            self.peak_cache = self.scan_band()
-        
-        if not self.peak_cache:
-            logging.warning("No peaks found after scan. Aborting search.")
+            self.peak_cache = []  # Clear cache to force fresh scan
+            
+            # First, do full band power scan to find all peaks
+            peaks = self.scan_band()
+            if not peaks:
+                logging.warning("No peaks found. Aborting scan.")
+                self.searching = False
+                self.start()  # Resume normal listening
+                return
+            
+            logging.info(f"Found {len(peaks)} potential stations. Scanning each...")
+            
+            # Now visit each peak sequentially
+            for i, freq in enumerate(peaks):
+                if not self.searching:
+                    logging.info("Scan aborted by user.")
+                    break
+                
+                logging.info(f"[{i+1}/{len(peaks)}] Checking {freq} MHz...")
+                self.current_frequency = freq
+                self.stop()
+                time.sleep(0.3)
+                
+                # Start listening and wait for RDS
+                self._listen_for_rds(freq, timeout=2.5)
+            
+            # Scan complete
+            logging.info("=== FULL BAND SCAN COMPLETE ===")
             self.searching = False
-            # Restart normal monitoring loop on current freq
-            self.start()
-            return self.current_frequency
+            self.start()  # Resume normal listening on last freq
+        
+        threading.Thread(target=_full_band_scan, daemon=True).start()
+    
+    def _listen_for_rds(self, freq, timeout=2.5):
+        """Listen on a frequency for RDS data. Save if found."""
+        import queue
+        settings = get_settings()
+        device = settings.get('device_index', '0')
+        
+        gain_val = self.current_gain
+        if gain_val != 'auto' and float(gain_val) == 0:
+            gain_val = 0.1
+        gain_flag = f"-g {gain_val}" if self.current_gain != 'auto' else ""
+        
+        full_cmd = f"rtl_fm -d {device} -f {freq}M -M fm -s 171k -A fast -r 171k -l 0 -E deemp {gain_flag} | redsea -u"
+        
+        try:
+            process = subprocess.Popen(full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, 
+                                       bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
+            
+            q = queue.Queue()
+            def reader(pipe, q):
+                try:
+                    for line in iter(pipe.readline, ''):
+                        if not line: break
+                        q.put(line)
+                except: pass
+                finally: pipe.close()
+            
+            reader_thread = threading.Thread(target=reader, args=(process.stdout, q), daemon=True)
+            reader_thread.start()
+            
+            start_time = time.time()
+            found_rds = False
+            
+            while time.time() - start_time < timeout:
+                if not self.searching:
+                    break
+                try:
+                    line = q.get(timeout=0.3)
+                    data = json.loads(line)
+                    data['frequency'] = freq
+                    
+                    if data.get('pi') or data.get('ps') or data.get('rt'):
+                        found_rds = True
+                        save_message(data)
+                        publish_rds(data)
+                        logging.info(f"RDS found on {freq} MHz: {data.get('ps', '?')}")
+                except:
+                    pass
+            
+            # Cleanup
+            try:
+                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+            except:
+                pass
+            
+            if not found_rds:
+                logging.debug(f"No RDS on {freq} MHz")
+                
+        except Exception as e:
+            logging.error(f"Error listening on {freq}: {e}")
 
-        # Find next frequency in cache
-        next_freq = None
-        for f in self.peak_cache:
-            if f > self.current_frequency + 0.05: 
-                next_freq = f
-                break
-        
-        if next_freq is None:
-            logging.info("End of band reached, wrapping to start of cache.")
-            next_freq = self.peak_cache[0]
-        
-        logging.info(f"Next Station: {next_freq} MHz (from {len(self.peak_cache)} peaks)")
-        self.search_start_time = time.time()
-        self.tune(next_freq)
-        
-        # We return the freq but finding the next one is done by calling scan_next again 
-        # via the loop timeout or manual button. 
-        return next_freq
 
     def _run_loop(self):
         import queue
@@ -218,15 +275,6 @@ class Scanner:
             reader_thread.start()
 
             while not self.stop_event.is_set():
-                # Check search timeout (if no RDS within 4 seconds, skip to next)
-                if self.searching:
-                    elapsed = time.time() - self.search_start_time
-                    if elapsed > 2.0: # 2 second timeout for RDS lock (faster scan)
-                        logging.info(f"No RDS lock on {self.current_frequency} MHz after {round(elapsed, 1)}s. Skipping...")
-                        # Run scan_next in a thread so we don't block this breaking loop
-                        threading.Thread(target=self.scan_next, daemon=True).start()
-                        break 
-
                 try:
                     line = q.get(timeout=0.5) # Check stop_event every 0.5s even if no data
                 except queue.Empty:
@@ -237,20 +285,6 @@ class Scanner:
                 try:
                     data = json.loads(line)
                     data['frequency'] = self.current_frequency
-                    
-                    if self.searching and (data.get('pi') or data.get('ps') or data.get('rt')):
-                        # Found RDS! 
-                        # User wants full band scan, so we don't stop.
-                        # We linger for 3 seconds to get good data, then move on.
-                        elapsed_lock = time.time() - self.last_rds_time
-                        if elapsed_lock > 3.0: 
-                             logging.info(f"RDS captured on {self.current_frequency}. Moving to next...")
-                             self.last_rds_time = time.time() # Reset for debounce
-                             threading.Thread(target=self.scan_next, daemon=True).start()
-                        else:
-                             # Just update timestamps so we don't move too fast
-                             self.last_rds_time = time.time()
-
                     save_message(data)
                     publish_rds(data)
                     

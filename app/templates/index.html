@@ -352,7 +352,7 @@
                 <button type="button" class="btn-radio blue" onclick="tune()">SET</button>
             </div>
 
-            <button type="button" class="btn-radio green" onclick="scanNext()">SEARCH BAND</button>
+            <button type="button" id="scan-btn" class="btn-radio green" onclick="toggleScan()">SEARCH BAND</button>
 
             <div class="knob-section" style="flex-grow:1;">
                 <label>Gain</label>
@@ -420,6 +420,18 @@
                         document.getElementById('flag-tp').className = s.tp ? 'flag-led on' : 'flag-led';
                     }
 
+                    // Update scan button text based on state
+                    const scanBtn = document.getElementById('scan-btn');
+                    if (data.searching) {
+                        scanBtn.innerText = "STOP SCAN";
+                        scanBtn.classList.remove('green');
+                        scanBtn.classList.add('red');
+                    } else {
+                        scanBtn.innerText = "SEARCH BAND";
+                        scanBtn.classList.remove('red');
+                        scanBtn.classList.add('green');
+                    }
+
                     if (data.searching) {
                         if (statusInterval) clearInterval(statusInterval);
                         statusInterval = setInterval(updateStatus, 1000);
@@ -464,24 +476,9 @@
             fetch('/api/tune', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gain: gain }) }).then(updateStatus);
         }
 
-        function scanNext() {
-            console.log("Searching band...");
-            // Visual feedback
-            const btn = document.querySelector('.btn-radio.green');
-            const originalText = btn.innerText;
-            btn.innerText = "INITIATING...";
-
+        function toggleScan() {
             fetch('/api/scan/next', { method: 'POST' })
-                .then(r => r.json())
-                .then(data => {
-                    console.log("Search started:", data);
-                    updateStatus();
-                    setTimeout(() => btn.innerText = originalText, 2000);
-                })
-                .catch(err => {
-                    alert("Error starting search: " + err);
-                    btn.innerText = "ERROR";
-                });
+                .then(() => updateStatus());
         }
 
         function clearAll() {
