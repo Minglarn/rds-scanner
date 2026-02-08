@@ -8,10 +8,12 @@ RUN apt-get update && apt-get install -y \
     meson \
     ninja-build \
     cmake \
+    pkg-config \
     libsndfile1-dev \
     libliquid-dev \
     libjansson-dev \
     librtlsdr-dev \
+    libusb-1.0-0-dev \
     libfftw3-dev \
     libfaad-dev \
     libmpg123-dev \
