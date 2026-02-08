@@ -28,9 +28,47 @@ def init_db():
             raw_json TEXT
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    
+    # Initialize default settings if empty
+    cursor.execute('SELECT count(*) FROM settings')
+    if cursor.fetchone()[0] == 0:
+        defaults = [
+            ('start_frequency', '88.5'),
+            ('start_gain', 'auto'),
+            ('scan_step', '0.1'),
+            ('scan_integration', '0.2'),
+            ('mqtt_broker', 'mosquitto'),
+            ('mqtt_port', '1883'),
+            ('mqtt_user', ''),
+            ('mqtt_password', ''),
+            ('mqtt_topic_prefix', 'rds')
+        ]
+        cursor.executemany('INSERT INTO settings (key, value) VALUES (?, ?)', defaults)
+        
     conn.commit()
     conn.close()
     logging.info("Database initialized.")
+
+def get_settings():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT key, value FROM settings')
+    rows = cursor.fetchall()
+    conn.close()
+    return {row['key']: row['value'] for row in rows}
+
+def update_setting(key, value):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (key, str(value)))
+    conn.commit()
+    conn.close()
 
 def save_message(data):
     """

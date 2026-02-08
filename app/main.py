@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import logging
 import threading
 import time
 from app.scanner import scanner_instance
-from app.database import init_db, get_recent_messages, get_db_connection
+from app.database import init_db, get_recent_messages, get_db_connection, get_settings, update_setting
 from app.mqtt_client import init_mqtt
 
 # Configure logging
@@ -58,6 +58,26 @@ def messages():
     limit = int(request.args.get('limit', 50))
     msgs = get_recent_messages(limit)
     return jsonify(msgs)
+
+@app.route('/settings')
+def settings_page():
+    settings = get_settings()
+    return render_template('settings.html', settings=settings)
+
+@app.route('/api/settings', methods=['POST'])
+def save_settings_route():
+    try:
+        data = request.form
+        for key, value in data.items():
+            update_setting(key, value)
+            
+        # Reload MQTT configuration
+        init_mqtt()
+        
+        return redirect(url_for('settings_page'))
+    except Exception as e:
+        logging.error(f"Error saving settings: {e}")
+        return f"Error saving settings: {e}", 500
 
 @app.route('/partials/messages')
 def messages_partial():

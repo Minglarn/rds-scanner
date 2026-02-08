@@ -6,7 +6,7 @@ import time
 import os
 import signal
 import csv
-from app.database import save_message
+from app.database import save_message, get_settings
 from app.mqtt_client import publish_rds
 
 class Scanner:
@@ -74,7 +74,10 @@ class Scanner:
         # -i 1s (integration interval). -1 (single shot)
         # Output to stdout (or temp file). stdout is -
         
-        cmd = ['rtl_power', '-f', '87.5M:108M:100k', '-i', '0.2', '-g', '50', '-1', 'scan.csv']
+        settings = get_settings()
+        integration = settings.get('scan_integration', '0.2')
+        
+        cmd = ['rtl_power', '-f', '87.5M:108M:100k', '-i', integration, '-g', '50', '-1', 'scan.csv']
         
         try:
             subprocess.run(cmd, check=True, timeout=15)
@@ -128,7 +131,9 @@ class Scanner:
         
         if not peaks:
             logging.warning("No peaks found, falling back to simple step.")
-            new_freq = round(self.current_frequency + 0.1, 1)
+            settings = get_settings()
+            step_size = float(settings.get('scan_step', '0.1'))
+            new_freq = round(self.current_frequency + step_size, 1)
             if new_freq > 108.0: new_freq = 87.5
             self.tune(new_freq)
             return new_freq

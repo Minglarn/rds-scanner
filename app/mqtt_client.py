@@ -1,11 +1,7 @@
 import paho.mqtt.client as mqtt
-import os
 import json
 import logging
-
-BROKER = os.getenv('MQTT_BROKER', 'localhost')
-PORT = int(os.getenv('MQTT_PORT', 1883))
-TOPIC_PREFIX = os.getenv('MQTT_TOPIC_PREFIX', 'rds')
+from app.database import get_settings
 
 client = None
 
@@ -17,15 +13,34 @@ def on_connect(client, userdata, flags, rc):
 
 def init_mqtt():
     global client
-    if BROKER == 'localhost':
-        logging.warning("MQTT_BROKER not set, skipping MQTT init.")
+    settings = get_settings()
+    
+    broker = settings.get('mqtt_broker', 'mosquitto')
+    port = int(settings.get('mqtt_port', 1883))
+    user = settings.get('mqtt_user', '')
+    password = settings.get('mqtt_password', '')
+    
+    if not broker:
+        logging.warning("MQTT Broker not configured.")
         return
 
+    # cleanup old client if exists
+    if client:
+        try:
+            client.loop_stop()
+            client.disconnect()
+        except:
+            pass
+
     client = mqtt.Client()
+    if user and password:
+        client.username_pw_set(user, password)
+        
     client.on_connect = on_connect
     
     try:
-        client.connect(BROKER, PORT, 60)
+        logging.info(f"Connecting to MQTT Broker {broker}:{port}...")
+        client.connect(broker, port, 60)
         client.loop_start()
     except Exception as e:
         logging.error(f"Could not connect to MQTT Broker: {e}")
@@ -35,19 +50,24 @@ def publish_rds(data):
     if not client:
         return
 
+    settings = get_settings()
+    topic_prefix = settings.get('mqtt_topic_prefix', 'rds')
+
     try:
         # Publish full JSON
-        client.publish(f"{TOPIC_PREFIX}/json", json.dumps(data))
+        client.publish(f"{topic_prefix}/json", json.dumps(data))
         
-        # Publish specific fields for easier consumption
+        # Publish specific fields
         if 'ps' in data:
-            client.publish(f"{TOPIC_PREFIX}/ps", data['ps'])
+            client.publish(f"{topic_prefix}/ps", data['ps'])
         if 'rt' in data:
-            client.publish(f"{TOPIC_PREFIX}/rt", data['rt'])
+            client.publish(f"{topic_prefix}/rt", data['rt'])
         if 'pi' in data:
-            client.publish(f"{TOPIC_PREFIX}/pi", data['pi'])
+            client.publish(f"{topic_prefix}/pi", data['pi'])
         if 'pty' in data:
-            client.publish(f"{TOPIC_PREFIX}/pty", str(data['pty']))
+            client.publish(f"{topic_prefix}/pty", str(data['pty']))
+        if 'frequency' in data:
+            client.publish(f"{topic_prefix}/frequency", str(data['frequency']))
             
     except Exception as e:
         logging.error(f"Error publishing to MQTT: {e}")

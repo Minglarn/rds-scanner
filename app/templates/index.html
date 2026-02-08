@@ -1,50 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RDS Scanner</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: #e0e0e0; margin: 0; padding: 20px; }
-        .container { max_width: 800px; margin: 0 auto; }
-        .card { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        h1, h2 { color: #fff; margin-top: 0; }
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        input, select, button { padding: 10px; border-radius: 4px; border: 1px solid #444; background: #333; color: #fff; }
-        button { background: #007bff; border: none; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #0056b3; }
-        .status { font-size: 1.2em; font-weight: bold; color: #4caf50; }
-        .log-table { width: 100%; border-collapse: collapse; }
-        .log-table th, .log-table td { text-align: left; padding: 8px; border-bottom: 1px solid #444; }
-        .log-table th { background: #333; }
-        .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
-        .badge-tmc { background: #e91e63; color: #fff; }
-        .badge-ta { background: #ff9800; color: #000; }
-        .badge-tp { background: #2196f3; color: #fff; }
+        body {
+            font-family: sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max_width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        button {
+            background: #007bff;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: white;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .status-badge {
+            font-weight: bold;
+            color: #4caf50;
+            margin-left: 10px;
+        }
+
+        .nav-Link {
+            color: #aaa;
+            text-decoration: none;
+            margin-left: auto;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .log-table th,
+        .log-table td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #444;
+        }
+
+        .log-table th {
+            background: #333;
+        }
+
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .badge-tmc {
+            background: #e91e63;
+            color: #fff;
+        }
+
+        .badge-ta {
+            background: #ff9800;
+            color: #000;
+        }
+
+        .badge-tp {
+            background: #2196f3;
+            color: #fff;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="card">
-            <h1>RDS Scanner Control</h1>
-            <div class="controls">
-                <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="Frequency (MHz)">
-                <button onclick="tune()">Tune</button>
-                <select id="gain-input">
-                    <option value="auto">Auto Gain</option>
-                    <option value="0">0</option>
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="30">30</option>
-                    <option value="40">40</option>
-                    <option value="50">50</option>
-                </select>
-                <button onclick="setGain()">Set Gain</button>
-                <button onclick="scanNext()" style="background: #28a745;">Auto Search &raquo;</button>
+            <div class="header">
+                <h1>RDS Scanner Control</h1>
+                <a href="/settings" class="nav-link">Settings &#9881;</a>
             </div>
-            <div style="margin-top: 15px;">
-                Status: <span id="current-status" class="status">Loading...</span>
+
+            <div style="margin-bottom: 15px; padding: 10px; background: #222; border-radius: 4px;">
+                <strong>Current Status:</strong>
+                <span id="status-freq">--.-</span> MHz |
+                Gain: <span id="status-gain">--</span>
+                <span id="scan-status" style="display:none; color: #ffeb3b; margin-left: 10px;">Scanning...</span>
+            </div>
+
+            <div class="controls">
+                <div style="flex-basis: 100%; margin-bottom: 10px;">
+                    <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" style="width: 150px;"
+                        placeholder="MHz">
+                    <button onclick="tune()">Tune</button>
+                    <button onclick="scanNext()" style="background: #28a745; margin-left: 10px;">Auto Search
+                        &raquo;</button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                    <label for="gain-slider" style="margin:0;">Gain:</label>
+                    <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" style="flex-grow: 1;"
+                        oninput="document.getElementById('gain-val').innerText = this.value">
+                    <span id="gain-val" style="width: 30px;">0</span>
+                    <label style="margin:0; font-size: 0.9em; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> Auto
+                    </label>
+                    <button onclick="setGain()">Set Gain</button>
+                </div>
             </div>
         </div>
 
@@ -57,36 +148,48 @@
     </div>
 
     <script>
+        function toggleGainAuto(isAuto) {
+            const slider = document.getElementById('gain-slider');
+            slider.disabled = isAuto;
+        }
+
         function updateStatus() {
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
-                    const statusText = `Freq: ${data.frequency} MHz | Gain: ${data.gain}`;
-                    document.getElementById('current-status').textContent = statusText;
-                    document.getElementById('freq-input').value = data.frequency;
-                    document.getElementById('gain-input').value = data.gain;
+                    // Update display labels ONLY (don't touch inputs unless we just loaded)
+                    document.getElementById('status-freq').textContent = data.frequency;
+                    document.getElementById('status-gain').textContent = data.gain;
+
+                    const scanStatus = document.getElementById('scan-status');
+                    scanStatus.style.display = data.scanning ? 'inline' : 'none';
+
+                    // Set initial values if inputs are empty/default
+                    if (!document.getElementById('freq-input').value) {
+                        document.getElementById('freq-input').value = data.frequency;
+                    }
                 });
         }
-        
-        // Poll status every 5 seconds
-        setInterval(updateStatus, 5000);
-        updateStatus(); // Initial load
+
+        setInterval(updateStatus, 3000); // Polling status slower to be safe
+        updateStatus();
 
         function tune() {
             const freq = document.getElementById('freq-input').value;
             fetch('/api/tune', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({frequency: freq})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ frequency: freq })
             }).then(updateStatus);
         }
 
         function setGain() {
-            const gain = document.getElementById('gain-input').value;
+            const isAuto = document.getElementById('gain-auto').checked;
+            const gain = isAuto ? 'auto' : document.getElementById('gain-slider').value;
             fetch('/api/tune', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({gain: gain})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gain: gain })
             }).then(updateStatus);
         }
 
@@ -100,4 +203,5 @@
         }
     </script>
 </body>
+
 </html>
