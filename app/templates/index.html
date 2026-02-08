@@ -153,6 +153,8 @@
             slider.disabled = isAuto;
         }
 
+        let statusInterval = null;
+
         function updateStatus() {
             fetch('/api/status')
                 .then(r => r.json())
@@ -163,10 +165,16 @@
 
                     const scanStatus = document.getElementById('scan-status');
                     if (data.searching) {
-                        scanStatus.innerText = "Scanning for RDS...";
+                        scanStatus.innerText = `Scanning: ${data.frequency} MHz...`;
                         scanStatus.style.display = 'inline';
+                        // Accelerate polling when searching
+                        if (statusInterval) clearInterval(statusInterval);
+                        statusInterval = setInterval(updateStatus, 1000);
                     } else {
                         scanStatus.style.display = 'none';
+                        // Normal slow polling
+                        if (statusInterval) clearInterval(statusInterval);
+                        statusInterval = setInterval(updateStatus, 3000);
                     }
 
                     // Set initial values if inputs are empty/default
@@ -176,7 +184,7 @@
                 });
         }
 
-        setInterval(updateStatus, 3000); // Polling status slower to be safe
+        statusInterval = setInterval(updateStatus, 3000); // Polling status slower to be safe
         updateStatus();
 
         function tune() {
@@ -202,7 +210,6 @@
             fetch('/api/scan/next', { method: 'POST' })
                 .then(r => r.json())
                 .then(data => {
-                    alert('Scanning to: ' + data.frequency);
                     updateStatus();
                 });
         }
