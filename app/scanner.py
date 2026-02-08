@@ -6,7 +6,7 @@ import time
 import os
 import signal
 import csv
-from app.database import save_message, get_settings, register_signal_peaks
+from app.database import save_message, get_settings
 from app.mqtt_client import publish_rds
 
 class Scanner:
@@ -99,9 +99,6 @@ class Scanner:
             
             unique_peaks = sorted(list(set(peaks)))
             logging.info(f"Band scan complete. Found {len(unique_peaks)} potential stations.")
-            
-            # Register peaks in DB so they show up in UI immediately
-            register_signal_peaks(unique_peaks)
             
             return unique_peaks
         except Exception as e:
@@ -206,8 +203,17 @@ class Scanner:
                     data['frequency'] = self.current_frequency
                     
                     if self.searching and (data.get('pi') or data.get('ps') or data.get('rt')):
-                        logging.info(f"RDS Locked on {self.current_frequency} MHz! Stopping search.")
-                        self.searching = False 
+                        # Found RDS! 
+                        # User wants full band scan, so we don't stop.
+                        # We linger for 3 seconds to get good data, then move on.
+                        elapsed_lock = time.time() - self.last_rds_time
+                        if elapsed_lock > 3.0: 
+                             logging.info(f"RDS captured on {self.current_frequency}. Moving to next...")
+                             self.last_rds_time = time.time() # Reset for debounce
+                             threading.Thread(target=self.scan_next, daemon=True).start()
+                        else:
+                             # Just update timestamps so we don't move too fast
+                             self.last_rds_time = time.time()
 
                     save_message(data)
                     publish_rds(data)
