@@ -58,7 +58,11 @@ def get_status():
         'gain': scanner_instance.current_gain,
         'running': scanner_instance.running,
         'searching': scanner_instance.searching,
-        'current_station': current_rds
+        'current_station': current_rds,
+        'scan_status': scanner_instance.scan_status,
+        'scan_progress': scanner_instance.scan_progress,
+        'scan_total': scanner_instance.scan_total,
+        'stations_found': scanner_instance.stations_found
     })
 
 @app.route('/api/tune', methods=['POST'])

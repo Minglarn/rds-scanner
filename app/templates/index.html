@@ -409,8 +409,13 @@
                         ledLock.className = data.running ? 'led-pill active-lock' : 'led-pill';
                     }
 
-                    // Update RDS panel with current station info
-                    if (data.current_station) {
+                    // Update RDS panel with current station info OR scan status
+                    if (data.searching && data.scan_status) {
+                        // Show scan progress in the RDS panel
+                        document.getElementById('rds-ps').innerText = 'SCANNING...';
+                        document.getElementById('rds-pty').innerText = `${data.scan_progress}/${data.scan_total} frequencies`;
+                        document.getElementById('rds-rt').innerText = data.scan_status + (data.stations_found > 0 ? ` | ${data.stations_found} found` : '');
+                    } else if (data.current_station) {
                         const s = data.current_station;
                         document.getElementById('rds-ps').innerText = s.ps || '---';
                         document.getElementById('rds-pty').innerText = s.pty || '';
@@ -418,6 +423,9 @@
                         document.getElementById('flag-tmc').className = s.tmc ? 'flag-led on' : 'flag-led';
                         document.getElementById('flag-ta').className = s.ta ? 'flag-led on' : 'flag-led';
                         document.getElementById('flag-tp').className = s.tp ? 'flag-led on' : 'flag-led';
+                    } else if (data.scan_status && !data.searching) {
+                        // Show completion message
+                        document.getElementById('rds-rt').innerText = data.scan_status;
                     }
 
                     // Update scan button text based on state

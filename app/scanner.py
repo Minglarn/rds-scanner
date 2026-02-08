@@ -24,6 +24,10 @@ class Scanner:
         self.last_rds_time = 0
         self.search_start_time = 0
         self.peak_cache = []
+        self.scan_status = ""  # Human-readable status for UI
+        self.scan_progress = 0  # Current station index
+        self.scan_total = 0  # Total stations to scan
+        self.stations_found = 0  # RDS stations found in this scan
 
     def _build_command(self):
         settings = get_settings()
@@ -146,6 +150,7 @@ class Scanner:
             # User wants to STOP the search
             logging.info("Stopping auto-search by user request.")
             self.searching = False
+            self.scan_status = "Scan aborted"
             return
         
         # Start fresh search
@@ -153,33 +158,43 @@ class Scanner:
             logging.info("=== FULL BAND SCAN STARTING ===")
             self.searching = True
             self.peak_cache = []  # Clear cache to force fresh scan
+            self.stations_found = 0
+            self.scan_status = "Scanning FM band for signals..."
             
             # First, do full band power scan to find all peaks
             peaks = self.scan_band()
             if not peaks:
                 logging.warning("No peaks found. Aborting scan.")
                 self.searching = False
+                self.scan_status = "No signals found"
                 self.start()  # Resume normal listening
                 return
             
+            self.scan_total = len(peaks)
             logging.info(f"Found {len(peaks)} potential stations. Scanning each...")
             
             # Now visit each peak sequentially
             for i, freq in enumerate(peaks):
                 if not self.searching:
                     logging.info("Scan aborted by user.")
+                    self.scan_status = "Scan aborted by user"
                     break
                 
+                self.scan_progress = i + 1
+                self.scan_status = f"Checking {freq} MHz ({i+1}/{len(peaks)})"
                 logging.info(f"[{i+1}/{len(peaks)}] Checking {freq} MHz...")
                 self.current_frequency = freq
                 self.stop()
                 time.sleep(0.3)
                 
                 # Start listening and wait for RDS
-                self._listen_for_rds(freq, timeout=2.5)
+                found = self._listen_for_rds(freq, timeout=2.5)
+                if found:
+                    self.stations_found += 1
             
             # Scan complete
-            logging.info("=== FULL BAND SCAN COMPLETE ===")
+            self.scan_status = f"Complete! Found {self.stations_found} stations"
+            logging.info(f"=== FULL BAND SCAN COMPLETE: {self.stations_found} stations found ===")
             self.searching = False
             self.start()  # Resume normal listening on last freq
         
@@ -241,9 +256,12 @@ class Scanner:
             
             if not found_rds:
                 logging.debug(f"No RDS on {freq} MHz")
+            
+            return found_rds
                 
         except Exception as e:
             logging.error(f"Error listening on {freq}: {e}")
+            return False
 
 
     def _run_loop(self):
