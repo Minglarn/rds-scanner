@@ -5,8 +5,8 @@ FROM python:3.11-slim-bookworm AS builder
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
-    automake \
-    libtool \
+    meson \
+    ninja-build \
     libsndfile1-dev \
     libliquid-dev \
     libjansson-dev \
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /build
 RUN git clone https://github.com/windytan/redsea.git
 WORKDIR /build/redsea
-RUN ./autogen.sh && ./configure && make && make install
+RUN meson setup build && meson compile -C build && meson install -C build
 
 # Final image
 FROM python:3.11-slim-bookworm
@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Redsea binary from builder
+# Default install prefix with meson might be /usr/local
 COPY --from=builder /usr/local/bin/redsea /usr/local/bin/redsea
 
 # Set working directory
