@@ -1,212 +1,242 @@
-{% for station in stations %}
-<div class="data-row">
-    <div class="row-meta">
-        <span class="freq">{{ "%.1f"|format(station.frequency) }}</span>
-        <span class="pi" title="PI Code">{{ station.pi if station.pi else '----' }}</span>
-        <span class="hit-stats" title="Total Packets">{{ station.hit_count }}</span>
-    </div>
-
-    <div class="row-main">
-        <div class="station-id">
-            <span class="ps {{ 'dim' if not station.ps }}">{{ station.ps if station.ps else "SEARCHING..." }}</span>
-            <span class="pty">{{ station.pty | pty_name }}</span>
+<div class="station-grid">
+    {% for station in stations %}
+    <div class="station-card">
+        <div class="card-top">
+            <div class="freq-tag">{{ "%.1f"|format(station.frequency) }} MHz</div>
+            <div class="pi-tag" title="PI Code">{{ station.pi if station.pi else '----' }}</div>
         </div>
 
-        <div class="rt-lane">
-            <span class="rt-text">{{ station.rt if station.rt else '' }}</span>
+        <div class="card-main">
+            <div class="station-name {{ 'empty' if not station.ps }}">
+                {{ station.ps if station.ps else "DETECTOR ACTIVE" }}
+            </div>
+            <div class="pty-tag">{{ station.pty | pty_name }}</div>
+        </div>
+
+        <div class="rt-container">
+            <div class="rt-scroll-box">
+                {{ station.rt if station.rt else '... monitoring ...' }}
+            </div>
+        </div>
+
+        <div class="card-footer">
+            <div class="flags">
+                <span class="flag {{ 'active tmc' if station.tmc }}" title="TMC">M</span>
+                <span class="flag {{ 'active ta' if station.ta }}" title="TA">A</span>
+                <span class="flag {{ 'active tp' if station.tp }}" title="TP">P</span>
+            </div>
+            <div class="stats">
+                <span class="pkts">PKTS: {{ station.hit_count }}</span>
+                <span class="time">{{ station.last_seen.split(' ')[1].split('.')[0] if station.last_seen else ''
+                    }}</span>
+            </div>
         </div>
     </div>
-
-    <div class="row-flags">
-        <div class="flag-bit {{ 'active tmc' if station.tmc }}" title="TMC">M</div>
-        <div class="flag-bit {{ 'active ta' if station.ta }}" title="TA">A</div>
-        <div class="flag-bit {{ 'active tp' if station.tp }}" title="TP">P</div>
-    </div>
-
-    <div class="row-time">
-        {{ station.last_seen.split(' ')[1].split('.')[0] if station.last_seen else '' }}
-    </div>
+    {% endfor %}
 </div>
-{% endfor %}
 
 {% if not stations %}
-<div class="empty-feed">
-    <span class="blink">SYSTEM STANDBY</span>
-    <small>Awaiting signal correlation...</small>
+<div class="no-data-notice">
+    <div class="pulse">SQUELCH ON</div>
+    <p>correlation required</p>
 </div>
 {% endif %}
 
 <style>
-    .data-row {
-        display: flex;
-        align-items: center;
-        background: #0d0f14;
-        border-bottom: 1px solid #1a1e26;
-        padding: 4px 10px;
+    .station-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 15px;
-        font-family: 'JetBrains Mono', monospace;
-        transition: background 0.1s;
+        padding: 15px;
     }
 
-    .data-row:hover {
-        background: #141820;
-    }
-
-    .row-meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 130px;
-        flex-shrink: 0;
-    }
-
-    .freq {
-        color: #00d2ff;
-        font-weight: 800;
-        font-size: 0.95em;
-        width: 45px;
-    }
-
-    .pi {
-        color: #4b5563;
-        font-size: 0.7em;
-        width: 40px;
-    }
-
-    .hit-stats {
-        color: #059669;
-        font-size: 0.7em;
-        text-align: right;
-        flex-grow: 1;
-    }
-
-    .row-main {
-        flex-grow: 1;
-        display: flex;
-        gap: 20px;
+    .station-card {
+        background: #11141d;
+        border: 1px solid #232738;
+        border-radius: 8px;
         overflow: hidden;
-        align-items: center;
-    }
-
-    .station-id {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 180px;
-        flex-shrink: 0;
+        flex-direction: column;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        transition: transform 0.1s, border-color 0.2s;
     }
 
-    .ps {
+    .station-card:hover {
+        transform: translateY(-2px);
+        border-color: #00d2ff88;
+    }
+
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #1a1d2e;
+        padding: 8px 12px;
+        border-bottom: 1px solid #2e344e;
+    }
+
+    .freq-tag {
+        color: #00d2ff;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 800;
+        font-size: 1.1em;
+    }
+
+    .pi-tag {
+        font-size: 0.7em;
+        color: #4b5563;
+        font-family: monospace;
+    }
+
+    .card-main {
+        padding: 15px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .station-name {
+        font-size: 1.4em;
+        font-weight: 900;
         color: #fff;
-        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        line-height: 1.2;
+    }
+
+    .station-name.empty {
+        color: #232738;
         font-size: 0.9em;
+        font-style: italic;
+    }
+
+    .pty-tag {
+        font-size: 0.65em;
+        color: #94a3b8;
+        background: #000;
+        padding: 2px 8px;
+        border-radius: 4px;
+        align-self: flex-start;
+        font-weight: bold;
         text-transform: uppercase;
     }
 
-    .ps.dim {
-        color: #2d333d;
-        font-style: italic;
+    .rt-container {
+        background: #000;
+        margin: 0 15px 15px;
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #002200;
+        height: 60px;
+        overflow-y: auto;
+    }
+
+    .rt-scroll-box {
+        color: #00ff41;
+        font-family: 'JetBrains Mono', monospace;
         font-size: 0.8em;
+        line-height: 1.4;
+        text-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
     }
 
-    .pty {
-        color: #64748b;
-        font-size: 0.65em;
-        font-weight: normal;
-        border: 1px solid #2d333d;
-        padding: 0 4px;
-        border-radius: 2px;
+    .card-footer {
+        background: #0a0c10;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #1a1e26;
     }
 
-    .rt-lane {
-        flex-grow: 1;
-        overflow: hidden;
-        white-space: nowrap;
-        position: relative;
-    }
-
-    .rt-text {
-        font-size: 0.85em;
-        color: #10b981;
-        opacity: 0.9;
-    }
-
-    .row-flags {
+    .flags {
         display: flex;
         gap: 4px;
-        width: 60px;
-        flex-shrink: 0;
     }
 
-    .flag-bit {
-        width: 14px;
-        height: 14px;
-        background: #1a1e26;
-        color: #2d333d;
-        font-size: 8px;
+    .flag {
+        width: 18px;
+        height: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 10px;
+        font-weight: 800;
+        background: #111;
+        color: #222;
         border-radius: 2px;
-        font-weight: 900;
     }
 
-    .flag-bit.active.tmc {
-        background: #991b1b;
-        color: #fecaca;
-        box-shadow: 0 0 5px rgba(153, 27, 27, 0.5);
+    .flag.active.tmc {
+        background: #ff0055;
+        color: #fff;
+        box-shadow: 0 0 8px #ff005588;
     }
 
-    .flag-bit.active.ta {
-        background: #92400e;
-        color: #fef3c7;
-        box-shadow: 0 0 5px rgba(146, 64, 14, 0.5);
+    .flag.active.ta {
+        background: #ffaa00;
+        color: #000;
+        box-shadow: 0 0 8px #ffaa0088;
     }
 
-    .flag-bit.active.tp {
-        background: #075985;
-        color: #e0f2fe;
-        box-shadow: 0 0 5px rgba(7, 89, 133, 0.5);
+    .flag.active.tp {
+        background: #00d2ff;
+        color: #000;
+        box-shadow: 0 0 8px #00d2ff88;
     }
 
-    .row-time {
-        width: 60px;
-        text-align: right;
-        font-size: 0.7em;
-        color: #4b5563;
-        flex-shrink: 0;
-    }
-
-    .empty-feed {
-        padding: 60px;
-        text-align: center;
-        color: #1a1e26;
+    .stats {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        align-items: flex-end;
+        gap: 2px;
     }
 
-    .empty-feed span {
+    .pkts {
+        color: #059669;
+        font-size: 0.65em;
+        font-family: monospace;
+        font-weight: bold;
+    }
+
+    .time {
+        color: #4b5563;
+        font-size: 0.6em;
+        font-family: monospace;
+    }
+
+    .no-data-notice {
+        padding: 80px;
+        text-align: center;
+        color: #1a1e26;
+    }
+
+    .pulse {
+        font-family: 'JetBrains Mono';
         font-weight: 900;
-        letter-spacing: 5px;
-        font-size: 1.2em;
+        font-size: 2em;
+        letter-spacing: 10px;
+        animation: glow 2s infinite;
     }
 
-    .blink {
-        animation: pulse 2s infinite;
+    .no-data-notice p {
+        font-size: 0.8em;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-top: 10px;
     }
 
-    @keyframes pulse {
+    @keyframes glow {
         0% {
-            opacity: 0.2;
+            opacity: 0.3;
         }
 
         50% {
-            opacity: 0.5;
+            opacity: 0.6;
         }
 
         100% {
-            opacity: 0.2;
+            opacity: 0.3;
         }
     }
 </style>

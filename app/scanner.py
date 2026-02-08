@@ -23,6 +23,7 @@ class Scanner:
         self.searching = False
         self.last_rds_time = 0
         self.search_start_time = 0
+        self.peak_cache = []
 
     def _build_command(self):
         settings = get_settings()
