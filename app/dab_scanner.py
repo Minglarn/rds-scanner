@@ -225,7 +225,12 @@ class DABScanner:
                             new_services.append({'id': sid, 'name': name})
                         
                         if new_services:
+                            if len(new_services) != len(self.services):
+                                logging.info(f"Discovered {len(new_services)} services via HTML fallback")
                             self.services = new_services
+                        else:
+                            # logging.debug("No services found in HTML fallback")
+                            pass
                             
             except Exception as e:
                 # logging.debug(f"DAB polling error: {e}") 
