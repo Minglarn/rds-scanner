@@ -780,8 +780,8 @@
                         if (data.services && data.services.length > 0 && serviceSelect.options.length <= 1) {
                             console.log('DAB Services:', data.services);
                             serviceSelect.innerHTML = data.services.map(s => {
-                                const id = s.sid || s.id || s.serviceId || s.name;
-                                const label = s.label || s.name || s.shortLabel || s.componentLabel || 'Unknown';
+                                const id = s.id || s.sid || s.serviceId || s.name;
+                                const label = s.name || 'Unknown';
                                 return `<option value="${id}">${label}</option>`;
                             }).join('');
                             document.getElementById('rds-ps').innerText = 'DAB+ READY';
