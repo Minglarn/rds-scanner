@@ -119,8 +119,10 @@ class DABScanner:
                     for line in iter(pipe.readline, b''):
                         line_str = line.decode('utf-8', errors='ignore').strip()
                         if line_str:
-                            # Filter out noisy internal API errors
+                            # Filter out noisy internal messages
                             if "Could not understand GET request" in line_str:
+                                continue
+                            if "SuperframeFilter" in line_str:
                                 continue
                             logging.info(f"welle-cli: {line_str}")
                 except Exception:
@@ -222,9 +224,10 @@ class DABScanner:
                         s['id'] = sid
                         clean_services.append(s)
                     
+                    # Only log if service count changed
+                    if len(clean_services) != len(self.services):
+                        logging.info(f"DAB: Found {len(clean_services)} services. First: {clean_services[0].get('name') if clean_services else 'N/A'}")
                     self.services = clean_services
-                    if self.services:
-                        logging.info(f"Found {len(self.services)} services. First: {self.services[0].get('name')}")
                 else:
                     # Try /api/mux (older versions?)
                     response = requests.get(
