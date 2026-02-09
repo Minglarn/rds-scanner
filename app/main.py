@@ -262,6 +262,10 @@ def dab_audio():
         try:
             # Stream from welle-cli's internal web server
             with req.get(f'http://localhost:{dab_scanner.web_port}/mp3', stream=True, timeout=30) as r:
+                logging.info(f"DAB audio from welle-cli: status={r.status_code}, content-type={r.headers.get('Content-Type')}")
+                if not r.ok:
+                    logging.error(f"DAB audio stream failed: {r.status_code}")
+                    return
                 for chunk in r.iter_content(chunk_size=4096):
                     if chunk:
                         yield chunk
