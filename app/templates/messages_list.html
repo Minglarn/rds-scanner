@@ -3,10 +3,15 @@
     <div class="radio-card"
         onclick="tuneFreq('{{ station.frequency }}', '{{ station.ps|e }}', '{{ station.rt|e }}', '{{ station.pty|e }}', {{ station.tmc|int }}, {{ station.ta|int }}, {{ station.tp|int }}, '{{ station.pi|e }}')">
         <!-- Display Bezel -->
-        <div class="display-bezel">
+        <div class="display-bezel {{ 'dab-mode' if station.dab }}">
             <div class="display-header">
-                <span class="freq-main">{{ "%.1f"|format(station.frequency) }}<small>MHz</small></span>
+                <span class="freq-main">{{ "%.1f"|format(station.frequency) if not station.dab else station.dab_ensemble
+                    }}<small>{{ 'MHz' if not station.dab else 'DAB+' }}</small></span>
+                {% if station.dab %}
+                <span class="pi-code">TII:{{ station.dab_tii if station.dab_tii else '----' }}</span>
+                {% else %}
                 <span class="pi-code">PI:{{ station.pi if station.pi else '----' }}</span>
+                {% endif %}
             </div>
 
             <div class="ps-display {{ 'no-signal' if not station.ps }}">
@@ -14,6 +19,12 @@
             </div>
 
             <div class="pty-label">{{ station.pty if station.pty else '' }}</div>
+            {% if station.dab and station.dab_snr %}
+            <div class="signal-quality">
+                <div class="sq-bar" style="width: {{ [station.dab_snr * 4, 100]|min }}%"></div>
+                <span>SNR: {{ "%.1f"|format(station.dab_snr) }}dB</span>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Scrolling Ticker Area -->
@@ -26,9 +37,13 @@
         <!-- Indicator Bar -->
         <div class="indicator-bar">
             <div class="dash-indicators">
+                {% if station.dab %}
+                <div class="dash-led on-dab">DIGITAL</div>
+                {% else %}
                 <div class="dash-led {{ 'on-tmc' if station.tmc }}">TMC</div>
                 <div class="dash-led {{ 'on-ta' if station.ta }}">TA</div>
                 <div class="dash-led {{ 'on-tp' if station.tp }}">TP</div>
+                {% endif %}
             </div>
             <div class="card-stats">
                 <span class="stat-item"><i class="icon"></i>{{ station.hit_count }} PKTS</span>
@@ -199,6 +214,35 @@
         background: #0369a1;
         border-color: #0ea5e9;
         box-shadow: 0 0 5px rgba(14, 165, 233, 0.5);
+    }
+
+    .on-dab {
+        color: #000;
+        background: #00d2ff;
+        border-color: #00d2ff;
+        box-shadow: 0 0 8px rgba(0, 210, 255, 0.8);
+    }
+
+    .dab-mode {
+        border-color: #00d2ff33;
+        box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.1);
+    }
+
+    .signal-quality {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+        font-size: 0.55em;
+        color: #475569;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sq-bar {
+        height: 3px;
+        background: #00d2ff;
+        border-radius: 1px;
+        box-shadow: 0 0 5px rgba(0, 210, 255, 0.5);
     }
 
     .card-stats {

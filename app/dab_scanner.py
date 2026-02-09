@@ -272,11 +272,23 @@ class DABScanner:
                     consecutive_errors = 0  # Reset on success
                     data = response.json()
                     raw_services = data.get('services', [])
+                    ensemble_label = data.get('ensemble', {}).get('label', {}).get('label', 'Unknown')
+                    ensemble_id = data.get('ensemble', {}).get('id', '')
+                    snr = data.get('demodulator_snr', 0)
+                    
+                    # TII Info
+                    tii_list = data.get('tii', [])
+                    tii_str = ""
+                    if tii_list:
+                        # Format TII as "Main:Sub (Level)"
+                        tii = tii_list[0] # Take strongest/first
+                        tii_str = f"{tii.get('main', '?')}:{tii.get('sub', '?')}"
+                        
                     clean_services = []
                     for s in raw_services:
                         # Extract SID
                         sid = s.get('sid', '')
-                        # Extract Name from nested label object if necessary
+                        # Extract Name
                         label_val = s.get('label', 'Unknown')
                         name = "Unknown"
                         if isinstance(label_val, dict):
@@ -285,28 +297,28 @@ class DABScanner:
                             name = label_val.strip()
                         
                         # Add normalized service
-                        # We keep original fields just in case, but ensure 'name' and 'id' vary
                         s['name'] = name
                         s['id'] = sid
                         clean_services.append(s)
                     
-                    # Only log if service count changed
-                    if len(clean_services) != len(self.services):
-                        logging.info(f"DAB: Found {len(clean_services)} services. First: {clean_services[0].get('name') if clean_services else 'N/A'}")
-                        
-                        # Save new services to database as station cards
-                        existing_sids = {s.get('id') for s in self.services}
-                        for svc in clean_services:
-                            if svc.get('id') not in existing_sids:
-                                # Map DAB fields to RDS-like fields for compatibility
-                                save_message({
-                                    'frequency': self._get_channel_freq(),
-                                    'pi': svc.get('id', ''),
-                                    'ps': svc.get('name', 'Unknown'),
-                                    'rt': f"DAB+ service on {self.current_channel}",
-                                    'prog_type': svc.get('ptystring', ''),
-                                    'dab': True  # Flag to identify DAB entries
-                                })
+                    # Update services list
+                    existing_sids = {s.get('id') for s in self.services}
+                    for svc in clean_services:
+                        # We update even if SID exists to capture changing DLS/metadata
+                        # Map DAB fields to RDS-like fields for compatibility
+                        save_message({
+                            'frequency': self._get_channel_freq(),
+                            'pi': svc.get('id', ''),
+                            'ps': svc.get('name', 'Unknown'),
+                            'rt': svc.get('dls_label', f"DAB+ ensemble: {ensemble_label}"),
+                            'prog_type': svc.get('ptystring', ''),
+                            'language': svc.get('languagestring', ''),
+                            'dab': True,
+                            'dab_ensemble': ensemble_label,
+                            'dab_ensemble_id': ensemble_id,
+                            'dab_tii': tii_str,
+                            'dab_snr': snr
+                        })
                     self.services = clean_services
                 else:
                     # Try /api/mux (older versions?)

@@ -25,7 +25,14 @@ def init_db():
             tmc INTEGER,
             ta INTEGER,
             tp INTEGER,
-            raw_json TEXT
+            raw_json TEXT,
+            -- DAB-specific fields
+            dab INTEGER DEFAULT 0,
+            dab_ensemble TEXT,
+            dab_ensemble_id TEXT,
+            dab_tii TEXT,
+            dab_snr REAL,
+            language TEXT
         )
     ''')
     cursor.execute('''
@@ -74,7 +81,7 @@ def update_setting(key, value):
 def save_message(data):
     """
     Save a decoded RDS message to the database.
-    data: dict containing RDS fields
+    data: dict containing RDS or DAB fields
     """
     try:
         conn = get_db_connection()
@@ -83,9 +90,8 @@ def save_message(data):
         # Extract fields with defaults
         frequency = data.get('frequency', 0.0)
         pi = data.get('pi', '')
-        pi = data.get('pi', '')
         ps = data.get('ps', '')
-        # Map radiotext (redsea standard) or rt to rt column
+        # Map radiotext (redsea standard), rt (DAB DLS) to rt column
         rt = data.get('radiotext', data.get('rt', ''))
         # Map prog_type (from redsea) to pty column
         pty = data.get('prog_type', '')
@@ -97,12 +103,26 @@ def save_message(data):
         ta = 1 if data.get('ta') else 0
         tp = 1 if data.get('tp') else 0
         
+        # DAB specific
+        dab = 1 if data.get('dab') else 0
+        dab_ensemble = data.get('dab_ensemble', '')
+        dab_ensemble_id = data.get('dab_ensemble_id', '')
+        dab_tii = data.get('dab_tii', '')
+        dab_snr = data.get('dab_snr')
+        language = data.get('language', '')
+        
         raw_json = json.dumps(data)
         
         cursor.execute('''
-            INSERT INTO messages (timestamp, frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (datetime.utcnow(), frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json))
+            INSERT INTO messages (
+                timestamp, frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json,
+                dab, dab_ensemble, dab_ensemble_id, dab_tii, dab_snr, language
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            datetime.utcnow(), frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json,
+            dab, dab_ensemble, dab_ensemble_id, dab_tii, dab_snr, language
+        ))
         
         conn.commit()
         conn.close()
@@ -141,10 +161,14 @@ def get_grouped_stations(limit=50, sort_by='frequency'):
             MAX(timestamp) as last_seen,
             (SELECT ps FROM messages m2 WHERE m2.frequency = m1.frequency AND m2.pi = m1.pi AND m2.ps != '' ORDER BY m2.timestamp DESC LIMIT 1) as ps,
             (SELECT rt FROM messages m3 WHERE m3.frequency = m1.frequency AND m3.pi = m1.pi AND m3.rt != '' ORDER BY m3.timestamp DESC LIMIT 1) as rt,
-            (SELECT pty FROM messages m4 WHERE m4.frequency = m1.frequency AND m4.pi = m1.pi AND m4.pty != 0 ORDER BY m4.timestamp DESC LIMIT 1) as pty,
+            (SELECT pty FROM messages m4 WHERE m4.frequency = m1.frequency AND m4.pi = m1.pi AND m4.pty != '' AND m4.pty != '0' ORDER BY m4.timestamp DESC LIMIT 1) as pty,
+            (SELECT dab_ensemble FROM messages m5 WHERE m5.frequency = m1.frequency AND m5.pi = m1.pi AND m5.dab_ensemble != '' ORDER BY m5.timestamp DESC LIMIT 1) as dab_ensemble,
+            (SELECT dab_tii FROM messages m6 WHERE m6.frequency = m1.frequency AND m6.pi = m1.pi AND m6.dab_tii != '' ORDER BY m6.timestamp DESC LIMIT 1) as dab_tii,
+            (SELECT dab_snr FROM messages m7 WHERE m7.frequency = m1.frequency AND m7.pi = m1.pi AND m7.dab_snr IS NOT NULL ORDER BY m7.timestamp DESC LIMIT 1) as dab_snr,
             MAX(tmc) as tmc,
             MAX(ta) as ta,
             MAX(tp) as tp,
+            MAX(dab) as dab,
             COUNT(*) as hit_count
         FROM messages m1
         GROUP BY frequency, pi
