@@ -51,22 +51,25 @@ class Scanner:
 
     def stop(self):
         """Stop the scanner and release the device."""
+        if not self.running and not self.process:
+            return
+        
+        # Signal the thread to stop
+        self.stop_event.set()
+        
+        # Kill the process if it exists
         with self.lock:
-            if not self.running and not self.process:
-                return
-            
-            self.stop_event.set()
             if self.process:
                 logging.debug("Stopping FM scanner process...")
                 try:
                     if sys.platform != 'win32':
                         os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-                        # Wait for process to exit
                         try:
                             self.process.wait(timeout=2)
                         except subprocess.TimeoutExpired:
                             logging.warning("Scanner process didn't stop with SIGTERM, forcing SIGKILL")
                             os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                            self.process.wait(timeout=1)
                     else:
                         self.process.terminate()
                         self.process.wait(timeout=2)
@@ -74,9 +77,22 @@ class Scanner:
                     logging.debug(f"Stop error: {e}")
                 
                 self.process = None
-            
-            self.running = False
-            logging.info("Scanner stopped")
+        
+        # Wait for the thread to actually exit
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=3)
+            if self.thread.is_alive():
+                logging.warning("Scanner thread did not exit cleanly")
+        
+        # Nuclear option: kill rtl_fm by name to be absolutely sure
+        try:
+            subprocess.run(['pkill', '-9', 'rtl_fm'], stderr=subprocess.DEVNULL, timeout=1)
+            subprocess.run(['pkill', '-9', 'redsea'], stderr=subprocess.DEVNULL, timeout=1)
+        except:
+            pass
+        
+        self.running = False
+        logging.info("Scanner stopped")
 
     def tune(self, frequency, gain=None):
         logging.info(f"Tuning to {frequency} MHz")
