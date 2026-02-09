@@ -215,8 +215,8 @@ class DABScanner:
                             html = response.text
                             # DEBUG: Log HTML to see structure
                             logging.info(f"HTML content length: {len(html)}")
-                            if len(html) < 500:
-                                logging.info(f"HTML content: {html}")
+                            # Log first 2000 chars to debug structure
+                            logging.info(f"HTML content preview: {html[:2000]}")
                             
                             matches = re.finditer(r'<a href="/mp3/[^/]+/([^"]+)">([^<]+)</a>', html)
                             new_services = []
