@@ -203,9 +203,28 @@ class DABScanner:
                 )
                 if response.ok:
                     data = response.json()
-                    self.services = data.get('services', [])
+                    raw_services = data.get('services', [])
+                    clean_services = []
+                    for s in raw_services:
+                        # Extract SID
+                        sid = s.get('sid', '')
+                        # Extract Name from nested label object if necessary
+                        label_val = s.get('label', 'Unknown')
+                        name = "Unknown"
+                        if isinstance(label_val, dict):
+                            name = label_val.get('label', '').strip() or label_val.get('shortlabel', '').strip()
+                        elif isinstance(label_val, str):
+                            name = label_val.strip()
+                        
+                        # Add normalized service
+                        # We keep original fields just in case, but ensure 'name' and 'id' vary
+                        s['name'] = name
+                        s['id'] = sid
+                        clean_services.append(s)
+                    
+                    self.services = clean_services
                     if self.services:
-                        logging.info(f"Found {len(self.services)} services. Sample: {self.services[0]}")
+                        logging.info(f"Found {len(self.services)} services. First: {self.services[0].get('name')}")
                 else:
                     # Try /api/mux (older versions?)
                     response = requests.get(
