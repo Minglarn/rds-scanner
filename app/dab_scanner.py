@@ -100,13 +100,13 @@ class DABScanner:
         
         # If device looks like a serial number (more than 2 chars or non-digit)
         if len(device) > 2 or not device.isdigit():
-            # Force SoapySDR with specific serial
-            cmd.extend(['-F', f'soapysdr,driver=rtlsdr,serial={device}'])
+            # Use -F soapysdr for input type, -s for device arguments
+            cmd.extend(['-F', 'soapysdr'])
+            cmd.extend(['-s', f'driver=rtlsdr,serial={device}'])
         else:
-            # Traditional index
-            # Note: -D in welle-cli is for DUMPing, not device index! 
-            # We use SoapySDR index for consistency.
-            cmd.extend(['-F', f'soapysdr,driver=rtlsdr,index={device}'])
+            # Traditional index - also use SoapySDR for consistency
+            cmd.extend(['-F', 'soapysdr'])
+            cmd.extend(['-s', f'driver=rtlsdr,rtl={device}'])
         
         # Add gain if specified (and not auto)
         # welle-cli uses -g GAIN
