@@ -382,12 +382,12 @@
             <div class="knob-section" style="flex-grow:1;">
                 <label>Gain</label>
                 <input type="range" id="gain-slider" min="0" max="50" step="1" value="0" class="slider"
-                    oninput="document.getElementById('gain-val').innerText = this.value">
+                    oninput="document.getElementById('gain-val').innerText = this.value" onchange="setGain()">
                 <span id="gain-val" style="font-family: monospace; font-size: 0.9em; min-width: 20px;">0</span>
                 <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                    <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked)"> AUTO
+                    <input type="checkbox" id="gain-auto" onchange="toggleGainAuto(this.checked); setGain()"> AUTO
                 </label>
-                <button type="button" class="btn-radio" onclick="setGain()">APPLY</button>
+                <button type="button" class="btn-radio" onclick="setGain()" style="display:none;">APPLY</button>
             </div>
         </div>
 
