@@ -5,14 +5,18 @@
         <!-- Display Bezel -->
         <div class="display-bezel {{ 'dab-mode' if station.dab }}">
             <div class="display-header">
-                <span class="freq-main">{{ "%.1f"|format(station.frequency) if not station.dab else station.dab_ensemble
-                    }}<small>{{ 'MHz' if not station.dab else 'DAB+' }}</small></span>
+                <span class="freq-main">{{ "%.1f"|format(station.frequency) }}<small>{{ 'MHz' if not station.dab else
+                        'DAB+' }}</small></span>
                 {% if station.dab %}
                 <span class="pi-code">TII:{{ station.dab_tii if station.dab_tii else '----' }}</span>
                 {% else %}
                 <span class="pi-code">PI:{{ station.pi if station.pi else '----' }}</span>
                 {% endif %}
             </div>
+
+            {% if station.dab %}
+            <div class="ensemble-label">{{ station.dab_ensemble if station.dab_ensemble else 'SEARCHING...' }}</div>
+            {% endif %}
 
             <div class="ps-display {{ 'no-signal' if not station.ps }}">
                 {{ station.ps if station.ps else "TUNING..." }}
@@ -150,6 +154,17 @@
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 1px;
+    }
+
+    .ensemble-label {
+        font-size: 0.7em;
+        color: #00d2ff;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        opacity: 0.9;
+        margin-top: -2px;
+        margin-bottom: 5px;
     }
 
     .ticker-area {
