@@ -83,7 +83,8 @@ class DABScanner:
             'welle-cli',
             '-c', self.current_channel,
             '-w', str(self.web_port),
-            '-D', device
+            '-D', device,
+            '-L' # Enable logging in welle-cli if supported, or ensure verbosity
         ]
         
         # Add gain if specified (and not auto)
@@ -107,8 +108,21 @@ class DABScanner:
             # Wait a moment for welle-cli to start
             time.sleep(2)
             
-            # Start background thread to monitor
+            # Start background thread to monitor services via API
             threading.Thread(target=self._monitor_services, daemon=True).start()
+
+            # Start background thread to log welle-cli output
+            def _log_output(pipe, level):
+                try:
+                    for line in iter(pipe.readline, b''):
+                        line_str = line.decode('utf-8', errors='ignore').strip()
+                        if line_str:
+                            logging.info(f"welle-cli: {line_str}")
+                except Exception:
+                    pass
+
+            threading.Thread(target=_log_output, args=(self.process.stdout, logging.INFO), daemon=True).start()
+            threading.Thread(target=_log_output, args=(self.process.stderr, logging.ERROR), daemon=True).start()
             
             return True
         except Exception as e:
