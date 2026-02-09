@@ -68,6 +68,15 @@ def publish_rds(data):
             client.publish(f"{topic_prefix}/pty", str(data['pty']))
         if 'frequency' in data:
             client.publish(f"{topic_prefix}/frequency", str(data['frequency']))
+        
+        # DAB specific topics
+        if data.get('dab'):
+            if 'dab_ensemble' in data:
+                client.publish(f"{topic_prefix}/dab_ensemble", data['dab_ensemble'])
+            if 'dab_tii' in data:
+                client.publish(f"{topic_prefix}/dab_tii", data['dab_tii'])
+            if 'dab_snr' in data:
+                client.publish(f"{topic_prefix}/dab_snr", str(data['dab_snr']))
             
     except Exception as e:
         logging.error(f"Error publishing to MQTT: {e}")

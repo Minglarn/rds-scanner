@@ -12,6 +12,7 @@ import json
 import sys
 import requests
 from app.database import get_settings, save_message
+from app.mqtt_client import publish_rds
 
 # Swedish DAB+ channels reference
 DAB_CHANNELS = {
@@ -306,7 +307,7 @@ class DABScanner:
                     for svc in clean_services:
                         # We update even if SID exists to capture changing DLS/metadata
                         # Map DAB fields to RDS-like fields for compatibility
-                        save_message({
+                        message_data = {
                             'frequency': self._get_channel_freq(),
                             'pi': svc.get('id', ''),
                             'ps': svc.get('name', 'Unknown'),
@@ -318,7 +319,9 @@ class DABScanner:
                             'dab_ensemble_id': ensemble_id,
                             'dab_tii': tii_str,
                             'dab_snr': snr
-                        })
+                        }
+                        save_message(message_data)
+                        publish_rds(message_data)
                     self.services = clean_services
                 else:
                     # Try /api/mux (older versions?)
