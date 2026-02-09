@@ -127,7 +127,8 @@ class DABScanner:
                     'stderr': subprocess.PIPE,
                 }
                 if sys.platform != 'win32':
-                    popen_kwargs['preexec_fn'] = os.setsid
+                    # Use start_new_session for proper process group handling
+                    popen_kwargs['start_new_session'] = True
                 
                 self.process = subprocess.Popen(cmd, **popen_kwargs)
                 self.running = True

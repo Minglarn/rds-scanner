@@ -17,14 +17,39 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def force_release_usb():
     """Nuclear option: kill all potentially device-holding processes."""
     import subprocess
-    logging.info("Running nuclear USB release (killing all radio processes)...")
-    processes = ['rtl_fm', 'redsea', 'welle-cli', 'rtl_power', 'airspy_rx', 'soapy']
+    logging.info("Running USB release (killing all radio processes)...")
+    processes = ['rtl_fm', 'redsea', 'welle-cli', 'rtl_power', 'airspy_rx']
+    
+    # First try graceful stop
     for p in processes:
         try:
-            subprocess.run(['pkill', '-9', p], stderr=subprocess.DEVNULL)
+            subprocess.run(['pkill', p], stderr=subprocess.DEVNULL, timeout=1)
         except:
             pass
-    time.sleep(1) # Give OS time to actually free the interface
+    
+    time.sleep(0.5)
+    
+    # Then force kill
+    for p in processes:
+        try:
+            subprocess.run(['pkill', '-9', p], stderr=subprocess.DEVNULL, timeout=1)
+        except:
+            pass
+    
+    time.sleep(0.5)
+    
+    # Verify rtl_fm is dead (the most common offender)
+    try:
+        result = subprocess.run(['pgrep', '-c', 'rtl_fm'], capture_output=True, timeout=1)
+        count = result.stdout.decode().strip()
+        if count and count != '0':
+            logging.warning(f"rtl_fm processes still running after force kill: {count}")
+        else:
+            logging.debug("All radio processes confirmed killed")
+    except:
+        pass
+    
+    time.sleep(0.5)  # Final settle time
 
 # Filter out noisy polling requests from logs
 class EndpointFilter(logging.Filter):
@@ -215,24 +240,26 @@ def set_mode():
         return jsonify({'mode': current_mode, 'message': 'Already in this mode'})
         
     logging.info(f"Switching mode to: {new_mode}")
-    current_mode = new_mode # Update globally as early as possible
+    current_mode = new_mode  # Update globally as early as possible
     
     # Switch modes - only one can use RTL-SDR at a time
     if new_mode == 'dab':
+        # Disable audio streaming to prevent restart during transition
+        audio_streamer.disable()
         scanner_instance.stop()
-        audio_streamer.stop()
         force_release_usb()
-        logging.info("Allowing USB device to settle (3.0s) before starting DAB...")
-        time.sleep(3.0)
+        logging.info("Allowing USB device to settle (2.0s) before starting DAB...")
+        time.sleep(2.0)
         dab_scanner.start()
     else:
         dab_scanner.stop()
         force_release_usb()
-        logging.info("Allowing USB device to settle (2.0s) before starting FM...")
-        time.sleep(2.0)
+        logging.info("Allowing USB device to settle (1.5s) before starting FM...")
+        time.sleep(1.5)
+        # Re-enable audio streaming for FM mode
+        audio_streamer.enable()
         scanner_instance.start()
     
-    current_mode = new_mode
     return jsonify({'mode': current_mode, 'message': f'Switched to {new_mode.upper()} mode'})
 
 @app.route('/api/dab/status', methods=['GET'])

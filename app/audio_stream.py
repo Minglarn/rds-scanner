@@ -15,6 +15,16 @@ class AudioStreamer:
     def __init__(self):
         self.process = None
         self.lock = threading.Lock()
+        self.disabled = False  # Prevents restart during mode switch
+    
+    def disable(self):
+        """Disable audio streaming (used during mode switch)."""
+        self.disabled = True
+        self.stop()
+    
+    def enable(self):
+        """Re-enable audio streaming."""
+        self.disabled = False
     
     def _build_command(self, frequency, gain='auto'):
         """Build the rtl_fm + sox + ffmpeg pipeline for audio streaming."""
@@ -34,18 +44,23 @@ class AudioStreamer:
     
     def generate_audio(self, frequency, gain='auto'):
         """Generator that yields audio chunks for streaming."""
+        # Prevent starting if disabled (during mode switch)
+        if self.disabled:
+            logging.info("Audio stream disabled, skipping")
+            return
+            
         cmd = self._build_command(frequency, gain)
         logging.info(f"Starting audio stream: {frequency} MHz")
         
         try:
-            # preexec_fn only works on Unix
             popen_kwargs = {
                 'shell': True,
                 'stdout': subprocess.PIPE,
                 'stderr': subprocess.DEVNULL,
             }
             if sys.platform != 'win32':
-                popen_kwargs['preexec_fn'] = os.setsid
+                # Use start_new_session for proper process group handling
+                popen_kwargs['start_new_session'] = True
             
             process = subprocess.Popen(cmd, **popen_kwargs)
             
