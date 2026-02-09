@@ -119,6 +119,9 @@ class DABScanner:
                     for line in iter(pipe.readline, b''):
                         line_str = line.decode('utf-8', errors='ignore').strip()
                         if line_str:
+                            # Filter out noisy internal API errors
+                            if "Could not understand GET request" in line_str:
+                                continue
                             logging.info(f"welle-cli: {line_str}")
                 except Exception:
                     pass
