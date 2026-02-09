@@ -213,6 +213,12 @@ class DABScanner:
                     )
                     if response.ok:
                         html = response.text
+                        # DEBUG: Log HTML to see structure
+                        if len(html) < 500:
+                            logging.info(f"HTML content: {html}")
+                        else:
+                            logging.info(f"HTML content (first 500): {html[:500]}")
+
                         # Regex to find services: href="/mp3/Channel/ServiceID">ServiceName</a>
                         # We want to extract ServiceName and ServiceID
                         # Example: <a href="/mp3/5C/1234">Radio 1</a>
