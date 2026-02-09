@@ -201,9 +201,13 @@ def set_mode():
     if new_mode == 'dab':
         scanner_instance.stop()
         audio_streamer.stop()
+        logging.info("Allowing USB device to settle before starting DAB...")
+        time.sleep(1.5)
         dab_scanner.start()
     else:
         dab_scanner.stop()
+        logging.info("Allowing USB device to settle before starting FM...")
+        time.sleep(1.5)
         scanner_instance.start()
     
     current_mode = new_mode

@@ -50,13 +50,31 @@ class Scanner:
             logging.info(f"Scanner started on {self.current_frequency} MHz")
 
     def stop(self):
+        """Stop the scanner and release the device."""
         with self.lock:
+            if not self.running and not self.process:
+                return
+            
             self.stop_event.set()
             if self.process:
+                logging.debug("Stopping FM scanner process...")
                 try:
-                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-                except:
-                    pass
+                    if sys.platform != 'win32':
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                        # Wait for process to exit
+                        try:
+                            self.process.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            logging.warning("Scanner process didn't stop with SIGTERM, forcing SIGKILL")
+                            os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                    else:
+                        self.process.terminate()
+                        self.process.wait(timeout=2)
+                except Exception as e:
+                    logging.debug(f"Stop error: {e}")
+                
+                self.process = None
+            
             self.running = False
             logging.info("Scanner stopped")
 

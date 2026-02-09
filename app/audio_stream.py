@@ -70,16 +70,26 @@ class AudioStreamer:
     def stop(self):
         """Stop the current audio stream."""
         with self.lock:
-            if self.process:
-                try:
-                    if sys.platform != 'win32':
-                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-                    else:
-                        self.process.terminate()
-                except Exception as e:
-                    logging.debug(f"Stop process error: {e}")
-                self.process = None
-                logging.info("Audio stream stopped")
+            if not self.process:
+                return
+                
+            try:
+                logging.debug("Stopping audio stream process group...")
+                if sys.platform != 'win32':
+                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                    try:
+                        self.process.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        logging.warning("Audio process didn't stop with SIGTERM, forcing SIGKILL")
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                else:
+                    self.process.terminate()
+                    self.process.wait(timeout=2)
+            except Exception as e:
+                logging.debug(f"Stop process error: {e}")
+            
+            self.process = None
+            logging.info("Audio stream stopped")
 
 # Singleton instance
 audio_streamer = AudioStreamer()
