@@ -196,55 +196,32 @@ class DABScanner:
         import re
         while self.running:
             try:
-                # First try the JSON API (might fail on some versions)
+                # Try /mux.json (seen in HTML)
                 response = requests.get(
-                    f'http://localhost:{self.web_port}/api/mux',
+                    f'http://localhost:{self.web_port}/mux.json',
                     timeout=5
                 )
                 if response.ok:
                     data = response.json()
+                    # logging.info(f"Got mux.json: {data.keys()}")
                     self.services = data.get('services', [])
                 else:
-                    # Fallback: Parse index.html which lists services
-                    try:
-                        response = requests.get(
-                            f'http://localhost:{self.web_port}/',
-                            timeout=5
-                        )
-                        if response.ok:
-                            html = response.text
-                            # DEBUG: Log HTML to see structure
-                            logging.info(f"HTML content length: {len(html)}")
-                            # Log first 5000 chars to debug structure (full file is ~4400 bytes)
-                            logging.info(f"HTML content preview: {html[:5000]}")
+                    # Try /api/mux (older versions?)
+                    response = requests.get(
+                        f'http://localhost:{self.web_port}/api/mux',
+                        timeout=5
+                    )
+                    if response.ok:
+                        data = response.json()
+                        self.services = data.get('services', [])
+                    else:
+                        logging.warning(f"Failed to get services: {response.status_code}")
                             
-                            # Probe for status.json just in case
-                            try:
-                                s_resp = requests.get(f'http://localhost:{self.web_port}/status.json', timeout=1)
-                                if s_resp.ok:
-                                    logging.info(f"Found /status.json: {s_resp.text}")
-                            except:
-                                pass
-                            
-                            matches = re.finditer(r'<a href="/mp3/[^/]+/([^"]+)">([^<]+)</a>', html)
-                            new_services = []
-                            for m in matches:
-                                sid = m.group(1)
-                                name = m.group(2).strip()
-                                new_services.append({'id': sid, 'name': name})
-                            
-                            if new_services:
-                                if len(new_services) != len(self.services):
-                                    logging.info(f"Discovered {len(new_services)} services via HTML fallback")
-                                self.services = new_services
-                        else:
-                            logging.warning(f"HTML fallback failed: {response.status_code}")
-                    except Exception as e:
-                         logging.error(f"HTML fallback error: {e}")
-
             except Exception as e:
                 logging.error(f"DAB polling error: {e}") 
             time.sleep(3)
+
+
     
     def get_services(self):
         """Get list of services in current ensemble."""
