@@ -1,7 +1,7 @@
 <div class="radio-grid">
     {% for station in stations %}
     <div class="radio-card"
-        onclick="tuneFreq('{{ station.frequency }}', '{{ station.ps|e }}', '{{ station.rt|e }}', '{{ station.pty|e }}', {{ station.tmc|int }}, {{ station.ta|int }}, {{ station.tp|int }})">
+        onclick="tuneFreq('{{ station.frequency }}', '{{ station.ps|e }}', '{{ station.rt|e }}', '{{ station.pty|e }}', {{ station.tmc|int }}, {{ station.ta|int }}, {{ station.tp|int }}, '{{ station.pi|e }}')">
         <!-- Display Bezel -->
         <div class="display-bezel">
             <div class="display-header">

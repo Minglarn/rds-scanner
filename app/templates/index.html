@@ -549,8 +549,11 @@
         statusInterval = setInterval(updateStatus, 3000);
         updateStatus();
 
-        function tuneFreq(freq, ps, rt, pty, tmc, ta, tp) {
+        let lastSID = null;
+
+        function tuneFreq(freq, ps, rt, pty, tmc, ta, tp, pi) {
             document.getElementById('freq-input').value = freq;
+            lastSID = pi || null; // Capture SID (pi field in DAB cards)
 
             // Populate RDS panel
             document.getElementById('rds-ps').innerText = ps || '---';
@@ -565,9 +568,49 @@
             tune();
         }
 
-        function tune() {
-            const freq = document.getElementById('freq-input').value;
-            fetch('/api/tune', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ frequency: freq }) }).then(updateStatus);
+        async function tune() {
+            const freq = parseFloat(document.getElementById('freq-input').value);
+
+            // If frequency is in DAB range, use DAB tuning
+            if (freq > 108.0) {
+                // Ensure FM is stopped if we're switching modes
+                if (currentMode !== 'dab') {
+                    const toggle = document.getElementById('mode-toggle');
+                    if (!toggle.checked) {
+                        toggle.checked = true;
+                        toggleRadioMode();
+                    }
+                }
+
+                // Find channel label from frequency
+                let channelLabel = null;
+                // We'll trust the backend to handle the frequency mapping or we can try to find it
+                // For now, let's just send the frequency and let the backend decide
+
+                await fetch('/api/dab/tune', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        frequency: freq,
+                        service: lastSID
+                    })
+                });
+                updateDABStatus();
+            } else {
+                // FM Tuning
+                if (currentMode !== 'fm') {
+                    const toggle = document.getElementById('mode-toggle');
+                    if (toggle.checked) {
+                        toggle.checked = false;
+                        toggleRadioMode();
+                    }
+                }
+                fetch('/api/tune', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ frequency: freq })
+                }).then(updateStatus);
+            }
         }
 
         function setGain() {

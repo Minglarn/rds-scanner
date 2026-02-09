@@ -66,6 +66,18 @@ class DABScanner:
         self.lock = threading.Lock()
         self.services = []
         
+    def find_channel_by_freq(self, freq_mhz):
+        """Find the DAB channel label for a given frequency in MHz."""
+        try:
+            freq_khz = int(float(freq_mhz) * 1000)
+            # Small tolerance for floating point or rounding issues
+            for label, khz in DAB_CHANNELS.items():
+                if abs(khz - freq_khz) <= 5: # 5 kHz tolerance
+                    return label
+        except:
+            pass
+        return None
+
     def start(self, channel=None, gain=None):
         """Start welle-cli with web server on given channel."""
         if channel:

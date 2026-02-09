@@ -103,6 +103,11 @@ def tune():
     data = request.json
     try:
         freq = float(data.get('frequency', scanner_instance.current_frequency))
+        # If it's a DAB frequency, don't let FM try to tune it
+        if freq > 108.0:
+            logging.info(f"Ignoring FM tune request for DAB frequency {freq} MHz")
+            return jsonify({'error': 'DAB frequency', 'redirect': 'dab'}), 400
+            
         gain = data.get('gain', scanner_instance.current_gain)
         # Manual tune stops auto-search
         scanner_instance.searching = False
@@ -242,13 +247,23 @@ def dab_tune():
     """Tune to a DAB channel or service."""
     data = request.json
     channel = data.get('channel')
+    freq = data.get('frequency')
     service = data.get('service')
     gain = data.get('gain')
     
+    # Resolve frequency to channel label if needed
+    if freq and not channel:
+        channel = dab_scanner.find_channel_by_freq(freq)
+        logging.info(f"Resolved frequency {freq} MHz to DAB channel {channel}")
+
     if channel:
         success = dab_scanner.tune_channel(channel)
         if success:
-            return jsonify({'status': 'ok', 'channel': channel})
+            # If service is also provided, tune to it after mux is initialized
+            if service:
+                time.sleep(1.5)
+                dab_scanner.tune_service(service)
+            return jsonify({'status': 'ok', 'channel': channel, 'service': service})
         else:
             return jsonify({'error': f'Failed to tune to {channel}'}), 500
             
@@ -266,7 +281,7 @@ def dab_tune():
         else:
             return jsonify({'error': f'Failed to tune to service {service}'}), 500
     
-    return jsonify({'error': 'Specify channel, service, or gain'}), 400
+    return jsonify({'error': 'Specify channel, frequency, service, or gain'}), 400
 
 @app.route('/api/dab/audio')
 def dab_audio():
