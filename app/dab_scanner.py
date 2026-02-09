@@ -81,15 +81,18 @@ class DABScanner:
         # welle-cli -c CHANNEL -w PORT starts the web server
         cmd = [
             'welle-cli',
-            '-c', self.current_channel,
+            '-f', str(DAB_CHANNELS.get(self.current_channel, 225648)), # Use frequency in kHz
             '-w', str(self.web_port),
-            '-D', device
+            '-D', device,
         ]
         
         # Add gain if specified (and not auto)
         # welle-cli uses -g GAIN
         if self.current_gain != 'auto':
             cmd.extend(['-g', str(self.current_gain)])
+        else:
+            # "Auto" gain in UI -> Force high gain (40) because default is often 0
+            cmd.extend(['-g', '40'])
         
         logging.info(f"Starting DAB on channel {self.current_channel}")
         
