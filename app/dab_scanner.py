@@ -215,8 +215,16 @@ class DABScanner:
                             html = response.text
                             # DEBUG: Log HTML to see structure
                             logging.info(f"HTML content length: {len(html)}")
-                            # Log first 2000 chars to debug structure
-                            logging.info(f"HTML content preview: {html[:2000]}")
+                            # Log first 5000 chars to debug structure (full file is ~4400 bytes)
+                            logging.info(f"HTML content preview: {html[:5000]}")
+                            
+                            # Probe for status.json just in case
+                            try:
+                                s_resp = requests.get(f'http://localhost:{self.web_port}/status.json', timeout=1)
+                                if s_resp.ok:
+                                    logging.info(f"Found /status.json: {s_resp.text}")
+                            except:
+                                pass
                             
                             matches = re.finditer(r'<a href="/mp3/[^/]+/([^"]+)">([^<]+)</a>', html)
                             new_services = []
