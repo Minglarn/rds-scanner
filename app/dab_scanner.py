@@ -260,6 +260,7 @@ class DABScanner:
     def _monitor_services(self):
         """Background thread to poll welle-cli web API for services."""
         import re
+        consecutive_errors = 0
         while self.running:
             try:
                 # Try /mux.json (seen in HTML)
@@ -268,6 +269,7 @@ class DABScanner:
                     timeout=5
                 )
                 if response.ok:
+                    consecutive_errors = 0  # Reset on success
                     data = response.json()
                     raw_services = data.get('services', [])
                     clean_services = []
@@ -319,8 +321,12 @@ class DABScanner:
                         logging.warning(f"Failed to get services: {response.status_code}")
                             
             except Exception as e:
-                logging.error(f"DAB polling error: {e}") 
-            time.sleep(3)
+                consecutive_errors += 1
+                # Only log after many failures to reduce noise during restarts
+                if consecutive_errors > 10:
+                    logging.debug(f"DAB polling waiting for welle-cli...")
+                    consecutive_errors = 0  # Reset to avoid flooding
+            time.sleep(2)
 
 
     
