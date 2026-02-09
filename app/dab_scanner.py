@@ -207,6 +207,11 @@ class DABScanner:
             logging.error(f"Unknown DAB channel: {channel}")
             return False
         
+        # Skip restart if already running on this channel
+        if self.running and self.current_channel == channel:
+            logging.info(f"DAB already running on {channel}, skipping restart")
+            return True
+        
         self.current_channel = channel
         return self.start(channel)
         
