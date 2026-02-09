@@ -314,7 +314,7 @@ class Scanner:
                 try:
                     line = q.get(timeout=0.5) # Check stop_event every 0.5s even if no data
                 except queue.Empty:
-                    if self.process.poll() is not None:
+                    if self.process is None or self.process.poll() is not None:
                         break
                     continue
                 
