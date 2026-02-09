@@ -11,7 +11,7 @@ import time
 import json
 import sys
 import requests
-from app.database import get_settings
+from app.database import get_settings, save_message
 
 # Swedish DAB+ channels reference
 DAB_CHANNELS = {
@@ -184,14 +184,37 @@ class DABScanner:
         """Tune to a specific service within current ensemble."""
         self.current_service = service_id
         # With welle-cli web interface, service selection is done via the web API
+        # Try different endpoint formats that welle-cli might use
         try:
+            # Try /channel?sid=xxx format (common in welle-cli)
+            response = requests.get(
+                f'http://localhost:{self.web_port}/channel?sid={service_id}',
+                timeout=5
+            )
+            if response.ok:
+                logging.info(f"DAB: Tuned to service {service_id}")
+                return True
+            
+            # Fallback: Try POST to /api/channel
             response = requests.post(
                 f'http://localhost:{self.web_port}/api/channel/{service_id}',
                 timeout=5
             )
-            return response.ok
-        except:
+            if response.ok:
+                logging.info(f"DAB: Tuned to service {service_id} via /api/channel")
+                return True
+                
+            logging.warning(f"DAB: Could not tune to service {service_id}: {response.status_code}")
             return False
+        except Exception as e:
+            logging.error(f"DAB: Error tuning to service: {e}")
+            return False
+    
+    def _get_channel_freq(self):
+        """Get the frequency in MHz for the current channel."""
+        if self.current_channel and self.current_channel in DAB_CHANNELS:
+            return DAB_CHANNELS[self.current_channel] / 1000.0  # kHz to MHz
+        return 0.0
     
     def _monitor_services(self):
         """Background thread to poll welle-cli web API for services."""
@@ -227,6 +250,20 @@ class DABScanner:
                     # Only log if service count changed
                     if len(clean_services) != len(self.services):
                         logging.info(f"DAB: Found {len(clean_services)} services. First: {clean_services[0].get('name') if clean_services else 'N/A'}")
+                        
+                        # Save new services to database as station cards
+                        existing_sids = {s.get('id') for s in self.services}
+                        for svc in clean_services:
+                            if svc.get('id') not in existing_sids:
+                                # Map DAB fields to RDS-like fields for compatibility
+                                save_message({
+                                    'frequency': self._get_channel_freq(),
+                                    'pi': svc.get('id', ''),
+                                    'ps': svc.get('name', 'Unknown'),
+                                    'rt': f"DAB+ service on {self.current_channel}",
+                                    'prog_type': svc.get('ptystring', ''),
+                                    'dab': True  # Flag to identify DAB entries
+                                })
                     self.services = clean_services
                 else:
                     # Try /api/mux (older versions?)
