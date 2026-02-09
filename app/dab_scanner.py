@@ -81,7 +81,7 @@ class DABScanner:
         # welle-cli -c CHANNEL -w PORT starts the web server
         cmd = [
             'welle-cli',
-            '-f', str(DAB_CHANNELS.get(self.current_channel, 225648)), # Use frequency in kHz
+            '-c', self.current_channel,
             '-w', str(self.web_port),
             '-D', device,
         ]
