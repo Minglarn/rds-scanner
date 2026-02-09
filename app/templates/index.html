@@ -778,9 +778,12 @@
                         const serviceSelect = document.getElementById('dab-service');
                         // Only update if services changed to avoid resetting selection
                         if (data.services && data.services.length > 0 && serviceSelect.options.length <= 1) {
-                            serviceSelect.innerHTML = data.services.map(s =>
-                                `<option value="${s.id || s.name}">${s.name || s}</option>`
-                            ).join('');
+                            console.log('DAB Services:', data.services);
+                            serviceSelect.innerHTML = data.services.map(s => {
+                                const id = s.sid || s.id || s.serviceId || s.name;
+                                const label = s.label || s.name || s.shortLabel || s.componentLabel || 'Unknown';
+                                return `<option value="${id}">${label}</option>`;
+                            }).join('');
                             document.getElementById('rds-ps').innerText = 'DAB+ READY';
                             document.getElementById('rds-rt').innerText = `${data.services.length} services found on ${data.channel}`;
                         } else if (!data.services || data.services.length === 0) {

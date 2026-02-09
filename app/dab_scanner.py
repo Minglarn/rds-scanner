@@ -203,8 +203,9 @@ class DABScanner:
                 )
                 if response.ok:
                     data = response.json()
-                    # logging.info(f"Got mux.json: {data.keys()}")
                     self.services = data.get('services', [])
+                    if self.services:
+                        logging.info(f"Found {len(self.services)} services. Sample: {self.services[0]}")
                 else:
                     # Try /api/mux (older versions?)
                     response = requests.get(
