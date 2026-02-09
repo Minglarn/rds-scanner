@@ -60,7 +60,7 @@ class DABScanner:
         self.process = None
         self.running = False
         self.current_channel = '12B'  # Default Swedish SR DAB
-        self.current_gain = 'auto'
+        self.current_gain = 5  # Default to low manual gain (auto causes issues)
         self.current_service = None
         self.web_port = 7979
         self.lock = threading.Lock()
