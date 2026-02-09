@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y \
     sox \
     ffmpeg \
     welle.io \
+    soapysdr-module-rtlsdr \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Redsea binary from builder

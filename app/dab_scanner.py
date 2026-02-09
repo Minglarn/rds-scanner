@@ -79,12 +79,22 @@ class DABScanner:
         device = settings.get('device_index', '0')
         
         # welle-cli -c CHANNEL -w PORT starts the web server
+        # We use -F soapysdr for explicit device selection by serial number
         cmd = [
             'welle-cli',
             '-c', self.current_channel,
             '-w', str(self.web_port),
-            '-D', device,
         ]
+        
+        # If device looks like a serial number (more than 2 chars or non-digit)
+        if len(device) > 2 or not device.isdigit():
+            # Force SoapySDR with specific serial
+            cmd.extend(['-F', f'soapysdr,driver=rtlsdr,serial={device}'])
+        else:
+            # Traditional index
+            # Note: -D in welle-cli is for DUMPing, not device index! 
+            # We use SoapySDR index for consistency.
+            cmd.extend(['-F', f'soapysdr,driver=rtlsdr,index={device}'])
         
         # Add gain if specified (and not auto)
         # welle-cli uses -g GAIN
