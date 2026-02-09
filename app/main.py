@@ -14,6 +14,18 @@ current_mode = 'fm'
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def force_release_usb():
+    """Nuclear option: kill all potentially device-holding processes."""
+    import subprocess
+    logging.info("Running nuclear USB release (killing all radio processes)...")
+    processes = ['rtl_fm', 'redsea', 'welle-cli', 'rtl_power', 'airspy_rx', 'soapy']
+    for p in processes:
+        try:
+            subprocess.run(['pkill', '-9', p], stderr=subprocess.DEVNULL)
+        except:
+            pass
+    time.sleep(1) # Give OS time to actually free the interface
+
 # Filter out noisy polling requests from logs
 class EndpointFilter(logging.Filter):
     def filter(self, record):
@@ -201,13 +213,15 @@ def set_mode():
     if new_mode == 'dab':
         scanner_instance.stop()
         audio_streamer.stop()
-        logging.info("Allowing USB device to settle before starting DAB...")
-        time.sleep(1.5)
+        force_release_usb()
+        logging.info("Allowing USB device to settle (3.0s) before starting DAB...")
+        time.sleep(3.0)
         dab_scanner.start()
     else:
         dab_scanner.stop()
-        logging.info("Allowing USB device to settle before starting FM...")
-        time.sleep(1.5)
+        force_release_usb()
+        logging.info("Allowing USB device to settle (2.0s) before starting FM...")
+        time.sleep(2.0)
         scanner_instance.start()
     
     current_mode = new_mode

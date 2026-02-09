@@ -96,45 +96,57 @@ class DABScanner:
         
         logging.info(f"Starting DAB on channel {self.current_channel}")
         
-        try:
-            popen_kwargs = {
-                'stdout': subprocess.PIPE,
-                'stderr': subprocess.PIPE,
-            }
-            if sys.platform != 'win32':
-                popen_kwargs['preexec_fn'] = os.setsid
-            
-            self.process = subprocess.Popen(cmd, **popen_kwargs)
-            self.running = True
-            
-            # Wait a moment for welle-cli to start
-            time.sleep(2)
-            
-            # Start background thread to monitor services via API
-            threading.Thread(target=self._monitor_services, daemon=True).start()
+        # Try up to 3 times to start welle-cli (USB might be slow to release)
+        for attempt in range(3):
+            try:
+                popen_kwargs = {
+                    'stdout': subprocess.PIPE,
+                    'stderr': subprocess.PIPE,
+                }
+                if sys.platform != 'win32':
+                    popen_kwargs['preexec_fn'] = os.setsid
+                
+                self.process = subprocess.Popen(cmd, **popen_kwargs)
+                self.running = True
+                
+                # Wait for process to start and stay alive
+                time.sleep(2)
+                if self.process.poll() is not None:
+                    # welle-cli exited immediately, probably device busy
+                    stderr_out = self.process.stderr.read().decode('utf-8', errors='ignore')
+                    if "usb_claim_interface error" in stderr_out or "device busy" in stderr_out.lower():
+                        logging.warning(f"DAB start attempt {attempt+1} failed (device busy), retrying...")
+                        self.stop()
+                        time.sleep(1.5)
+                        continue
+                
+                # Start background thread to monitor services via API
+                threading.Thread(target=self._monitor_services, daemon=True).start()
 
-            # Start background thread to log welle-cli output
-            def _log_output(pipe, level):
-                try:
-                    for line in iter(pipe.readline, b''):
-                        line_str = line.decode('utf-8', errors='ignore').strip()
-                        if line_str:
-                            # Filter out noisy internal messages
-                            if "Could not understand GET request" in line_str:
-                                continue
-                            if "SuperframeFilter" in line_str:
-                                continue
-                            logging.info(f"welle-cli: {line_str}")
-                except Exception:
-                    pass
+                # Start background thread to log welle-cli output
+                def _log_output(pipe, level):
+                    try:
+                        for line in iter(pipe.readline, b''):
+                            line_str = line.decode('utf-8', errors='ignore').strip()
+                            if line_str:
+                                # Filter out noisy internal messages
+                                if "Could not understand GET request" in line_str:
+                                    continue
+                                if "SuperframeFilter" in line_str:
+                                    continue
+                                logging.info(f"welle-cli: {line_str}")
+                    except Exception:
+                        pass
 
-            threading.Thread(target=_log_output, args=(self.process.stdout, logging.INFO), daemon=True).start()
-            threading.Thread(target=_log_output, args=(self.process.stderr, logging.ERROR), daemon=True).start()
-            
-            return True
-        except Exception as e:
-            logging.error(f"Failed to start DAB: {e}")
-            return False
+                threading.Thread(target=_log_output, args=(self.process.stdout, logging.INFO), daemon=True).start()
+                threading.Thread(target=_log_output, args=(self.process.stderr, logging.ERROR), daemon=True).start()
+                
+                return True
+            except Exception as e:
+                logging.error(f"DAB start attempt {attempt+1} error: {e}")
+                time.sleep(1)
+        
+        return False
     
     def stop(self):
         """Stop the DAB receiver."""
