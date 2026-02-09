@@ -83,8 +83,7 @@ class DABScanner:
             'welle-cli',
             '-c', self.current_channel,
             '-w', str(self.web_port),
-            '-D', device,
-            '-L' # Enable logging in welle-cli if supported, or ensure verbosity
+            '-D', device
         ]
         
         # Add gain if specified (and not auto)
