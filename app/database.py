@@ -164,13 +164,15 @@ def get_grouped_stations(limit=50, sort_by='frequency'):
     freqs_with_pi = set()
     for r in results:
         if r['pi'] and r['pi'].strip():
-            freqs_with_pi.add(r['frequency'])
+            # Round to 1 decimal to avoid float precision issues
+            freqs_with_pi.add(round(r['frequency'], 1))
             
     # Filter out entries that have empty PI if that frequency already has a valid PI entry
     filtered_results = []
     for r in results:
         has_pi = r['pi'] and r['pi'].strip()
-        if not has_pi and r['frequency'] in freqs_with_pi:
+        freq_rounded = round(r['frequency'], 1)
+        if not has_pi and freq_rounded in freqs_with_pi:
             continue # Skip this "ghost" entry
         filtered_results.append(r)
         

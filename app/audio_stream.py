@@ -27,7 +27,7 @@ class AudioStreamer:
         # rtl_fm outputs raw signed 16-bit mono audio at given sample rate
         # We use sox to resample to 44100Hz, then ffmpeg to encode to MP3
         cmd = (
-            f"rtl_fm -d {device} -f {frequency}M -M fm -s 171k -A fast -r 44100 -l 0 -E deemp {gain_flag} 2>/dev/null | "
+            f"rtl_fm -d {device} -f {frequency}M -M fm -s 171k -A fast -r 44100 -l 0 -E deemp {gain_flag} | "
             f"ffmpeg -f s16le -ar 44100 -ac 1 -i - -acodec libmp3lame -ab 128k -f mp3 -"
         )
         return cmd

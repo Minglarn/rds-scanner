@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, Response, make_response
 import logging
 import threading
 import time
@@ -46,7 +46,13 @@ threading.Thread(target=start_scanner_delayed, daemon=True).start()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    """Render the main page."""
+    response = make_response(render_template('index.html'))
+    # Aggressively disable caching to ensure UI updates appear immediately
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
