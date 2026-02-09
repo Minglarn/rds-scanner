@@ -21,20 +21,32 @@ def init_db():
             pi TEXT,
             ps TEXT,
             rt TEXT,
-            pty TEXT, -- Changed to TEXT to store "Talk", "Pop Music" etc directly
+            pty TEXT,
             tmc INTEGER,
             ta INTEGER,
             tp INTEGER,
-            raw_json TEXT,
-            -- DAB-specific fields
-            dab INTEGER DEFAULT 0,
-            dab_ensemble TEXT,
-            dab_ensemble_id TEXT,
-            dab_tii TEXT,
-            dab_snr REAL,
-            language TEXT
+            raw_json TEXT
         )
     ''')
+    
+    # Migration: Add missing columns if they don't exist
+    cursor.execute("PRAGMA table_info(messages)")
+    columns = [row[1] for row in cursor.fetchall()]
+    
+    migrations = [
+        ('dab', 'INTEGER DEFAULT 0'),
+        ('dab_ensemble', 'TEXT'),
+        ('dab_ensemble_id', 'TEXT'),
+        ('dab_tii', 'TEXT'),
+        ('dab_snr', 'REAL'),
+        ('language', 'TEXT')
+    ]
+    
+    for col_name, col_type in migrations:
+        if col_name not in columns:
+            logging.info(f"Migrating database: adding column {col_name} to messages table")
+            cursor.execute(f"ALTER TABLE messages ADD COLUMN {col_name} {col_type}")
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
@@ -216,9 +228,12 @@ def register_signal_peaks(frequencies):
             # Always insert a new record for this frequency so it appears as "Recently Found"
             # We use empty PI/PS to indicate it's a raw signal detection
             cursor.execute('''
-                INSERT INTO messages (timestamp, frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (timestamp, freq, '', '', '', '', 0, 0, 0, '{}'))
+                INSERT INTO messages (
+                    timestamp, frequency, pi, ps, rt, pty, tmc, ta, tp, raw_json,
+                    dab, dab_ensemble, dab_ensemble_id, dab_tii, dab_snr, language
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (timestamp, freq, '', '', '', '', 0, 0, 0, '{}', 0, '', '', '', None, ''))
                 
         conn.commit()
         conn.close()
