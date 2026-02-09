@@ -193,8 +193,10 @@ class DABScanner:
     
     def _monitor_services(self):
         """Background thread to poll welle-cli web API for services."""
+        import re
         while self.running:
             try:
+                # First try the JSON API (might fail on some versions)
                 response = requests.get(
                     f'http://localhost:{self.web_port}/api/mux',
                     timeout=5
@@ -202,7 +204,31 @@ class DABScanner:
                 if response.ok:
                     data = response.json()
                     self.services = data.get('services', [])
-            except:
+                else:
+                    # Fallback: Parse index.html which lists services
+                    # The HTML usually has <li><a href="/mp3/Channel/ServiceID">ServiceName</a></li>
+                    response = requests.get(
+                        f'http://localhost:{self.web_port}/index.html',
+                        timeout=5
+                    )
+                    if response.ok:
+                        html = response.text
+                        # Regex to find services: href="/mp3/Channel/ServiceID">ServiceName</a>
+                        # We want to extract ServiceName and ServiceID
+                        # Example: <a href="/mp3/5C/1234">Radio 1</a>
+                        # Note: welle-cli channel in URL might be 5C or frequency
+                        matches = re.finditer(r'<a href="/mp3/[^/]+/([^"]+)">([^<]+)</a>', html)
+                        new_services = []
+                        for m in matches:
+                            sid = m.group(1)
+                            name = m.group(2).strip()
+                            new_services.append({'id': sid, 'name': name})
+                        
+                        if new_services:
+                            self.services = new_services
+                            
+            except Exception as e:
+                # logging.debug(f"DAB polling error: {e}") 
                 pass
             time.sleep(3)
     
