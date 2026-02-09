@@ -578,14 +578,9 @@
                     const toggle = document.getElementById('mode-toggle');
                     if (!toggle.checked) {
                         toggle.checked = true;
-                        toggleRadioMode();
+                        await toggleRadioMode();
                     }
                 }
-
-                // Find channel label from frequency
-                let channelLabel = null;
-                // We'll trust the backend to handle the frequency mapping or we can try to find it
-                // For now, let's just send the frequency and let the backend decide
 
                 await fetch('/api/dab/tune', {
                     method: 'POST',
@@ -602,7 +597,7 @@
                     const toggle = document.getElementById('mode-toggle');
                     if (toggle.checked) {
                         toggle.checked = false;
-                        toggleRadioMode();
+                        await toggleRadioMode();
                     }
                 }
                 fetch('/api/tune', {
@@ -670,7 +665,7 @@
 
         // ========== DAB FUNCTIONS ==========
 
-        function toggleRadioMode() {
+        async function toggleRadioMode() {
             const checkbox = document.getElementById('mode-toggle');
             const newMode = checkbox.checked ? 'dab' : 'fm';
 
@@ -690,7 +685,7 @@
             if (dabListening) toggleDABListen();
 
             // Call API to switch mode
-            fetch('/api/mode', {
+            return fetch('/api/mode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mode: newMode })
@@ -708,8 +703,10 @@
                         // Start FM polling
                         updateStatus();
                     }
+                    return data;
                 });
         }
+
 
         function tuneDAB() {
             const channel = document.getElementById('dab-channel').value;

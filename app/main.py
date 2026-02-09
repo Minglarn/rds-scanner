@@ -186,8 +186,8 @@ def audio_stop():
     """Stop the audio stream."""
     audio_streamer.stop()
     
-    # Restart the background scanner if we are in FM mode
-    if current_mode == 'fm' and not scanner_instance.running:
+    # Restart the background scanner if we are in FM mode and DAB isn't active
+    if current_mode == 'fm' and not scanner_instance.running and not dab_scanner.running:
         time.sleep(1) # Wait for audio process to die
         scanner_instance.start()
         
@@ -213,6 +213,9 @@ def set_mode():
     
     if new_mode == current_mode:
         return jsonify({'mode': current_mode, 'message': 'Already in this mode'})
+        
+    logging.info(f"Switching mode to: {new_mode}")
+    current_mode = new_mode # Update globally as early as possible
     
     # Switch modes - only one can use RTL-SDR at a time
     if new_mode == 'dab':
