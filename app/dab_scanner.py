@@ -121,12 +121,25 @@ class DABScanner:
             if self.process:
                 try:
                     if sys.platform != 'win32':
-                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                        # Try SIGTERM first
+                        try:
+                            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                            # Wait a bit
+                            try:
+                                self.process.wait(timeout=1)
+                            except subprocess.TimeoutExpired:
+                                # Force kill if still running
+                                logging.warning("DAB process didn't stop, forcing usage of SIGKILL")
+                                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                        except Exception:
+                            pass
                     else:
                         self.process.terminate()
                 except Exception as e:
                     logging.debug(f"DAB stop error: {e}")
                 self.process = None
+            
+            # Ensure internal state is reset
             self.running = False
             self.services = []
             logging.info("DAB stopped")
