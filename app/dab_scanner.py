@@ -206,41 +206,36 @@ class DABScanner:
                     self.services = data.get('services', [])
                 else:
                     # Fallback: Parse index.html which lists services
-                    # The HTML usually has <li><a href="/mp3/Channel/ServiceID">ServiceName</a></li>
-                    response = requests.get(
-                        f'http://localhost:{self.web_port}/index.html',
-                        timeout=5
-                    )
-                    if response.ok:
-                        html = response.text
-                        # DEBUG: Log HTML to see structure
-                        if len(html) < 500:
-                            logging.info(f"HTML content: {html}")
-                        else:
-                            logging.info(f"HTML content (first 500): {html[:500]}")
-
-                        # Regex to find services: href="/mp3/Channel/ServiceID">ServiceName</a>
-                        # We want to extract ServiceName and ServiceID
-                        # Example: <a href="/mp3/5C/1234">Radio 1</a>
-                        # Note: welle-cli channel in URL might be 5C or frequency
-                        matches = re.finditer(r'<a href="/mp3/[^/]+/([^"]+)">([^<]+)</a>', html)
-                        new_services = []
-                        for m in matches:
-                            sid = m.group(1)
-                            name = m.group(2).strip()
-                            new_services.append({'id': sid, 'name': name})
-                        
-                        if new_services:
-                            if len(new_services) != len(self.services):
-                                logging.info(f"Discovered {len(new_services)} services via HTML fallback")
-                            self.services = new_services
-                        else:
-                            # logging.debug("No services found in HTML fallback")
-                            pass
+                    try:
+                        response = requests.get(
+                            f'http://localhost:{self.web_port}/',
+                            timeout=5
+                        )
+                        if response.ok:
+                            html = response.text
+                            # DEBUG: Log HTML to see structure
+                            logging.info(f"HTML content length: {len(html)}")
+                            if len(html) < 500:
+                                logging.info(f"HTML content: {html}")
                             
+                            matches = re.finditer(r'<a href="/mp3/[^/]+/([^"]+)">([^<]+)</a>', html)
+                            new_services = []
+                            for m in matches:
+                                sid = m.group(1)
+                                name = m.group(2).strip()
+                                new_services.append({'id': sid, 'name': name})
+                            
+                            if new_services:
+                                if len(new_services) != len(self.services):
+                                    logging.info(f"Discovered {len(new_services)} services via HTML fallback")
+                                self.services = new_services
+                        else:
+                            logging.warning(f"HTML fallback failed: {response.status_code}")
+                    except Exception as e:
+                         logging.error(f"HTML fallback error: {e}")
+
             except Exception as e:
-                # logging.debug(f"DAB polling error: {e}") 
-                pass
+                logging.error(f"DAB polling error: {e}") 
             time.sleep(3)
     
     def get_services(self):
