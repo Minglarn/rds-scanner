@@ -640,7 +640,7 @@
         }
 
         let isListening = false;
-        function toggleListen() {
+        async function toggleListen() {
             const btn = document.getElementById('listen-btn');
             const audio = document.getElementById('radio-audio');
             const freq = document.getElementById('freq-input').value || 88.5;
@@ -649,7 +649,7 @@
                 // Stop listening
                 audio.pause();
                 audio.src = '';
-                fetch('/api/audio/stop', { method: 'POST' });
+                await fetch('/api/audio/stop', { method: 'POST' });
                 btn.innerHTML = '🔊 LISTEN';
                 btn.style.borderColor = '#ff6b35';
                 isListening = false;
@@ -680,9 +680,8 @@
             document.getElementById('fm-controls').style.display = newMode === 'fm' ? 'flex' : 'none';
             document.getElementById('dab-controls').style.display = newMode === 'dab' ? 'flex' : 'none';
 
-            // Stop any audio
-            if (isListening) toggleListen();
-            if (dabListening) toggleDABListen();
+            // Stop FM audio and wait for it to complete before mode switch
+            if (isListening) await toggleListen();
 
             // Call API to switch mode
             return fetch('/api/mode', {
