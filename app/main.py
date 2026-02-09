@@ -14,6 +14,16 @@ current_mode = 'fm'
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Filter out noisy polling requests from logs
+class EndpointFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        return msg.find('/partials/messages') == -1 and \
+               msg.find('/api/dab/status') == -1 and \
+               msg.find('/api/status') == -1
+
+logging.getLogger("werkzeug").addFilter(EndpointFilter())
+
 PTY_NAMES = {
     0: "None", 1: "News", 2: "Current Affairs", 3: "Information", 4: "Sport",
     5: "Education", 6: "Drama", 7: "Culture", 8: "Science", 9: "Varied",
