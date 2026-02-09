@@ -117,6 +117,7 @@ class DABScanner:
             cmd.extend(['-g', '40'])
         
         logging.info(f"Starting DAB on channel {self.current_channel}")
+        logging.info(f"DAB command: {' '.join(cmd)}")
         
         # Try up to 3 times to start welle-cli (USB might be slow to release)
         for attempt in range(3):
